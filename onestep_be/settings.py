@@ -40,14 +40,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "accounts",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.kakao",
-    "dj_rest_auth",
-    "dj_rest_auth.registration",
-    "rest_framework.authtoken",
     "drf_yasg",
 ]
 
@@ -59,30 +51,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
 ]
-
-load_dotenv()
-
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "APP": {
-            "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
-            "secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
-            "key": "",
-        },
-        "AUTH_PARAMS": {
-            "access_type": "online",
-        },
-        "EMAIL_AUTHENTICATION": True,
-        "SCOPE": [
-            "profile",
-            "email",
-        ],
-    }
-}
-
-SOCIALACCOUNT_ADAPTER = "accounts.adapter.AccountsAdapter"
 
 ROOT_URLCONF = "onestep_be.urls"
 
@@ -104,7 +73,6 @@ TEMPLATES = [
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 WSGI_APPLICATION = "onestep_be.wsgi.application"
