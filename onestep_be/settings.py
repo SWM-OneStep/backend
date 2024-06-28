@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "drf_yasg",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -76,6 +77,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 WSGI_APPLICATION = "onestep_be.wsgi.application"
+
+AUTH_USER_MODEL = "accounts.User"
 
 
 # Database
