@@ -27,7 +27,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -39,13 +39,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # "accounts",
+    "accounts",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.kakao",
-    "accounts.apps.AccountsConfig",
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "rest_framework.authtoken",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [
@@ -68,6 +71,9 @@ SOCIALACCOUNT_PROVIDERS = {
             "secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
             "key": "",
         },
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
         "EMAIL_AUTHENTICATION": True,
         "SCOPE": [
             "profile",
@@ -75,6 +81,8 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
     }
 }
+
+SOCIALACCOUNT_ADAPTER = "accounts.adapter.AccountsAdapter"
 
 ROOT_URLCONF = "onestep_be.urls"
 
