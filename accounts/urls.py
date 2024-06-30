@@ -1,5 +1,5 @@
 from django.contrib import admin
 from django.urls import path, include
-from .views import *
+from accounts.views import *
 
-urlpatterns = []
+urlpatterns = [path("login/", LoginView.as_view())]
