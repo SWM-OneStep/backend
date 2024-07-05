@@ -2,7 +2,16 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 
 
-class CustomUserManager(models.Manager):
+class TimeStamp(models.Model):
+    created_at = models.DateTimeField(null=True, auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        abstract = True
+
+
+class UserSignupManager(models.Manager):
 
     def create_user(self, email):
         try:
@@ -13,9 +22,19 @@ class CustomUserManager(models.Manager):
             return user
 
 
-class User(models.Model):
+class User(TimeStamp):
+
+    class SocialProvider(models.TextChoices):
+        GOOGLE = "GOOGLE"
+        KAKAO = "KAKAO"
+        NAVER = "NAVER"
+
     email = models.EmailField(unique=True)
-    objects = CustomUserManager()
+    signup = UserSignupManager()
+    name = models.CharField(max_length=100, null=True)
+    social_provider = models.CharField(
+        max_length=30, choices=SocialProvider.choices, default=SocialProvider.GOOGLE
+    )
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
@@ -26,3 +45,9 @@ class User(models.Model):
     @property
     def is_authenticated(self):
         return True
+
+
+class RefreshToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
