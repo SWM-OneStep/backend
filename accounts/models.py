@@ -11,7 +11,7 @@ class TimeStamp(models.Model):
         abstract = True
 
 
-class CustomUserManager(models.Manager):
+class UserSignupManager(models.Manager):
 
     def create_user(self, email):
         try:
@@ -23,8 +23,18 @@ class CustomUserManager(models.Manager):
 
 
 class User(TimeStamp):
+
+    class SocialProvider(models.TextChoices):
+        GOOGLE = "GOOGLE"
+        KAKAO = "KAKAO"
+        NAVER = "NAVER"
+
     email = models.EmailField(unique=True)
-    objects = CustomUserManager()
+    signup = UserSignupManager()
+    name = models.CharField(max_length=100, null=True)
+    social_provider = models.CharField(
+        max_length=30, choices=SocialProvider.choices, default=SocialProvider.GOOGLE
+    )
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
