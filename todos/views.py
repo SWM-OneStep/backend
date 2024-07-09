@@ -37,6 +37,7 @@ class TodoView(APIView):
         if 'content' in data:
             if not (1 <= len(data['content']) <= 50):
                 return Response({"error": "content must be between 1 and 50 characters."}, status=status.HTTP_400_BAD_REQUEST)
+        # user_id = user 테이블에 존재
         if 'user_id' in data:
             if not User.objects.filter(id=data['user_id']).exists():
                 return Response({"error": "user_id does not exist."}, status=status.HTTP_400_BAD_REQUEST)
@@ -51,8 +52,22 @@ class TodoView(APIView):
     def get(self, request):
         '''
         - 이 함수는 todo list를 불러오는 함수입니다.
+        - 입력으로 받는 것은 user_id 와 start_date, end_date 입니다.
+        - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
+        - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         '''
-        todos = Todo.objects.filter(deleted_at__isnull = False)
+        user_id = request.GET.get('user_id')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if start_date and end_date:
+            todos = Todo.objects.filter(deleted_at__isnull=True, user_id=user_id, start_date__gte=start_date, deadline__lte=end_date)
+        else:
+            todos = Todo.objects.filter(deleted_at__isnull=True, user_id=user_id)
+
         serializer = TodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -60,8 +75,10 @@ class TodoView(APIView):
         '''
         - 이 함수는 todo를 수정하는 함수입니다.
         - deadline 은 항상 start_date 와 같은 날이거나 그 이후여야합니다
-        - category는
+        - 
         '''
+
+
 
     def delete(self, request):
         '''

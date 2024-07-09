@@ -9,7 +9,7 @@ class TodoSerializer(serializers.ModelSerializer):
     start_date = serializers.DateField()
     deadline = serializers.DateField()
     parent_id = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), allow_null=True, required=False)
-    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
+    user_id = serializers.ReadOnlyField(source="user_id.id")
     class Meta:
         model = Todo
         fields = ['id', 'content', 'category', 'start_date', 'deadline', 'parent_id', 'user_id']
