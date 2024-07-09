@@ -45,6 +45,7 @@ class User(TimeStamp):
     @property
     def is_authenticated(self):
         return True
+    
 
 
 class RefreshToken(models.Model):
