@@ -1,4 +1,5 @@
 from django.db import models
+from accounts.models import User
 
 
 
@@ -19,7 +20,7 @@ class Todo(TimeStamp):
     deadline = models.DateField(null = True)
     due_date = models.DateField(null = True)
     parent_id = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
-    user_id = models.ForeignKey('accounts.User', on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     order = models.IntegerField(default=0)
     is_completed = models.BooleanField(default=False)
     

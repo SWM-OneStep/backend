@@ -30,7 +30,7 @@ class User(TimeStamp):
         NAVER = "NAVER"
 
     email = models.EmailField(unique=True)
-    signup = UserSignupManager()
+    # signup = UserSignupManager()
     name = models.CharField(max_length=100, null=True)
     social_provider = models.CharField(
         max_length=30, choices=SocialProvider.choices, default=SocialProvider.GOOGLE

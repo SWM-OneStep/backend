@@ -31,43 +31,21 @@ class TodoView(APIView):
         - order 순서 정리
         - 암호화
         '''
-        data = request.data.copy()
-        # deadline >= startdate
-        if 'start_date' in data and 'deadline' in data:
-            if data['deadline'] <= data['start_date']:
-                return Response({"error": "deadline must be on or after start_date."}, status=status.HTTP_400_BAD_REQUEST)
-        
+        data = request.data
+        serializer = TodoSerializer(data=data)
         # category = 6자리 hex 색상코드 형식
         if 'category' in data:
             if not re.match(r'^#[0-9A-Fa-f]{6}$', data['category']):
                 return Response({"error": "category must be a valid hex color code."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # content = 1자 이상 50자 이하
-        # 아직 암호화가 이루어지지 않음
-        if 'content' in data: 
-            if not (1 <= len(data['content']) <= 50):
-                return Response({"error": "content must be between 1 and 50 characters."}, status=status.HTTP_400_BAD_REQUEST)
-         # user_id = user 테이블에 존재
-        if 'user_id' in data:
-            if not User.signup.filter(id=data['user_id']).exists():
-                return Response({"error": "user_id does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-
-        parent_id = data.get('parent_id')
-        if parent_id:
-            if parent_id == '':
-                parent_id = None
-            elif not Todo.objects.filter(id=parent_id).exists():
-                return Response({"error": "parent_id does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-            elif parent_id == data.get('todo_id'):
-                return Response({"error": "parent_id cannot be the same as todo_id."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            data['parent_id'] = None
-
-        serializer = TodoSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
+            # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
     def get(self, request):
         '''
         - 이 함수는 todo list를 불러오는 함수입니다.
@@ -97,7 +75,7 @@ class TodoView(APIView):
             ).order_by('order')
 
         serializer = TodoSerializer(todos, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     def patch(self, request):
         '''
