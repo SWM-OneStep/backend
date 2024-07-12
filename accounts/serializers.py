@@ -4,6 +4,20 @@ from datetime import datetime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    google_client_id = os.environ.get("GCID")
+
+    @classmethod
+    def get_token(self, user):
+        token = super().get_token(user)
+        token["aud"] = self.google_client_id
+        return token
 
 
 class LoginRequestSerializer(serializers.Serializer):
