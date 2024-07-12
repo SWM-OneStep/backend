@@ -112,7 +112,7 @@ class TodoCreateTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # self.assertEqual(response.data, {'error': 'user_id does not exist.'})
 
-    # parent_id 가 없는 id 인 경우 -> 너는 성공해야해... 
+    # parent_id 가 없는 id 인 경우
     def test_parent_id_is_not_exist(self):
         response = self.client.post(
             reverse('todos'),
@@ -156,55 +156,242 @@ class TodoCreateTestCase(APITestCase):
                 'parent_id': ''
             }
         )
-        print("Response data:", response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
 class TodoGetTestCase(APITestCase):
     def setUp(self):
-        self. client = APIClient()
+        # Create a user for the tests
+        self.user = User.objects.create(email='testuser@asdf.asdf')
+        
+        # Log in the user
+        self.client.force_authenticate(user=self.user)
 
     # user_id 가 없는 경우
+    def user_id_is_null(self):
+        response = self.client.get(
+            reverse('todos'),
+            {
+                'user_id': '',
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'user_id is required.'})
 
     # user_id 가 없는 id 인 경우 
+    def user_id_is_not_exist(self):
+        response = self.client.get(
+            reverse('todos'),
+            {
+                'user_id': 999,
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'user_id does not exist.'})
 
     # start_date 나 end_date 중 하나만 주어진 경우 
+    # 수정 되어야 할 사항 - 여러개가 나오는 걸 확인할 수 있어야 함
+    def test_only_one_date(self):
+        response = self.client.get(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'start_date': '2021-01-01',
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertEqual(response.data, {'error': 'start_date and end_date must be provided together.'})
 
     # start_date, user_id, end_date 가 모두 주어진 경우
+    def test_correct_input(self):
+        response = self.client.get(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'start_date': '2021-01-01',
+                'end_date': '2021-01-03'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     # user_id 만 주어진 경우
+    def test_user_id_only(self):
+        response = self.client.get(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # 삭제된 todo를 가져오는 경우 
-
-    # 올바르게 입력된 경우 
 
 
 class TodoUpdateTestCase(APITestCase):
     def setUp(self):
-        self.client = APIClient()
+        # Create a user for the tests
+        self.user = User.objects.create(email='testuser@asdf.asdf')
+        
+        # Log in the user
+        self.client.force_authenticate(user=self.user)
+
+        self.todo = Todo.objects.create(
+            user_id= self.user,
+            start_date= '2021-01-01',
+            deadline= '2021-01-03',
+            content= 'test',
+            category= '#FFFFFF',
+        )
 
     # user_id 가 없는 경우
+    def user_id_is_null(self):
+        response = self.client.patch(
+            reverse('todos'),
+            {
+                'user_id': '',
+                'todo_id': 1,
+                'content': 'test'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'user_id is required.'})
 
     # user_id 가 없는 id 인 경우
+    def user_id_is_not_exist(self):
+        response = self.client.patch(
+            reverse('todos'),
+            {
+                'user_id': 999,
+                'todo_id': self.todo.id,
+                'content': 'test'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'user_id does not exist.'})
 
     # todo_id 가 없는 경우
+    def todo_id_is_null(self):
+        response = self.client.patch(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': '',
+                'content': 'test'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'todo_id is required.'})
 
     # todo_id 가 없는 id 인 경우
+    def todo_id_is_not_exist(self):
+        response = self.client.patch(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': 999,
+                'content': 'test'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'todo_id does not exist.'})
 
     # 한개의 업데이트 내용이 포함된 경우
+    def test_one_update(self):
+        response = self.client.patch(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': self.todo.id,
+                'content': 'test'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
 
     # 여러개의 업데이트 내용이 포함된 경우
+    def test_many_update(self):
+        response = self.client.patch(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': self.todo.id,
+                'content': 'test',
+                'category': '#FFFFFF',
+                'start_date': '2021-01-01',
+                'deadline': '2021-01-03'
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 class TodoDeleteTest(APITestCase):
     def setUp(self):
-        self.client = APIClient()
+        # Create a user for the tests
+        self.user = User.objects.create(email='testuser@asdf.asdf')
+        
+        # Log in the user
+        self.client.force_authenticate(user=self.user)
+        self.todo = Todo.objects.create(
+            user_id= self.user,
+            start_date= '2021-01-01',
+            deadline= '2021-01-03',
+            content= 'test',
+            category= '#FFFFFF',
+        )
 
     # user_id 가 없는 경우
+    def user_id_is_null(self):
+        response = self.client.delete(
+            reverse('todos'),
+            {
+                'user_id': '',
+                'todo_id': 1
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'user_id is required.'})
 
     # user_id 가 없는 id 인 경우
+    def user_id_is_not_exist(self):
+        response = self.client.delete(
+            reverse('todos'),
+            {
+                'user_id': 999,
+                'todo_id': self.todo.id
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'user_id does not exist.'})
 
     # todo_id 가 없는 경우
+    def todo_id_is_null(self):
+        response = self.client.delete(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': ''
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'todo_id is required.'})
 
     # todo_id 가 없는 id 인 경우
+    def todo_id_is_not_exist(self):
+        response = self.client.delete(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': 999
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # self.assertEqual(response.data, {'error': 'todo_id does not exist.'})
 
     # 올바르게 입력된 경우
+    def test_correct_input(self):
+        response = self.client.delete(
+            reverse('todos'),
+            {
+                'user_id': self.user.id,
+                'todo_id': self.todo.id
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

@@ -53,6 +53,9 @@ class TodoView(APIView):
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
+
+        구현되어야 할 사항
+        - order 및 depth 에 따른 정렬
         '''
         user_id = request.GET.get('user_id')
         start_date = request.GET.get('start_date')
@@ -75,7 +78,7 @@ class TodoView(APIView):
             ).order_by('order')
 
         serializer = TodoSerializer(todos, many=True)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     def patch(self, request):
         '''
@@ -86,8 +89,7 @@ class TodoView(APIView):
         user_id = request.data.get('user_id')
         todo_id = request.data.get('todo_id')
         update_fields = ['content', 'category', 'start_date', 'deadline', 'parent_id', 'is_completed', 'order']
-        update_data = {field: request.data[field] for field in update_fields if field in request.data}
-
+        update_data = {field: (request.data[field] if request.data[field] != '' else None) for field in update_fields if field in request.data}
         if not user_id or not todo_id:
             return Response({"error": "user_id and todo_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
