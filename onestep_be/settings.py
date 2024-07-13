@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
     "corsheaders",
+    "todos",
     "rest_framework_simplejwt",
     "allauth",
     "allauth.account",
@@ -134,7 +135,7 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": os.environ.get("DB_HOST"),
+        "HOST": os.environ.get("DB_HOST", 'db'),
         "PORT": os.environ.get("DB_PORT"),
     }
 }
