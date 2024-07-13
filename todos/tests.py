@@ -360,7 +360,6 @@ class TodoDeleteTest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # self.assertEqual(response.data, {'error': 'user_id does not exist.'})
-
     # todo_id 가 없는 경우
     def todo_id_is_null(self):
         response = self.client.delete(
@@ -382,7 +381,7 @@ class TodoDeleteTest(APITestCase):
                 'todo_id': 999
             }
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_0_BAD_REQUEST)
         # self.assertEqual(response.data, {'error': 'todo_id does not exist.'})
 
     # 올바르게 입력된 경우
