@@ -6,7 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 from todos.models import Todo
 from accounts.models import User
-from todos.serializers import TodoSerializer
+from todos.serializers import TodoSerializer, TodoUpdateSerializer
 import re
 from django.utils import timezone
 
@@ -20,7 +20,7 @@ class TodoView(APIView):
         - 입력 : user_id, start_date, deadline, content, category, parent_id
         - content 는 암호화 되어야 합니다.
         - deadline 은 항상 start_date 와 같은 날이거나 그 이후여야합니다
-        - category는 #으로 시작하며 뒤에는 6자여야 합니다.
+        - category_id 는 category에 존재해야합니다.
         - content는 1자 이상 50자 이하여야합니다.
         - user_id 는 user 테이블에 존재해야합니다.
         - parent_id는 todo 테이블에 이미 존재해야합니다.
@@ -33,18 +33,10 @@ class TodoView(APIView):
         '''
         data = request.data
         serializer = TodoSerializer(data=data)
-        # category = 6자리 hex 색상코드 형식
-        if 'category' in data:
-            if not re.match(r'^#[0-9A-Fa-f]{6}$', data['category']):
-                return Response({"error": "category must be a valid hex color code."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
-            # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def get(self, request):
         '''
@@ -106,8 +98,7 @@ class TodoView(APIView):
 
         todo.save()
 
-        serializer = TodoSerializer(todo)
-        # return Response({"todo_id": todo.id}, status=status.HTTP_200_OK)
+        serializer = TodoUpdateSerializer(todo)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
