@@ -22,7 +22,6 @@ class Todo(TimeStamp):
     parent_id = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     order = models.CharField(max_length=255)
-    depth =models.IntegerField(default=1, choices=[(1, 'Top Level'), (2, 'Level 2'), (3, 'Level 3')])
     is_completed = models.BooleanField(default=False)
     
     @property
