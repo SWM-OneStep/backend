@@ -16,10 +16,11 @@ class TodoSerializer(serializers.ModelSerializer):
     parent_id = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), allow_null=True, required=False)
     order = serializers.IntegerField(default=0)
     is_completed = serializers.BooleanField(default=False)
+
     
     class Meta:
         model = Todo
-        fields = ['id', 'content', 'category_id', 'start_date', 'deadline', 'due_date', 'parent_id', 'user_id', 'order', 'is_completed']
+        fields = ['id', 'content', 'category_id', 'start_date', 'deadline', 'due_date', 'parent_id', 'user_id', 'order', 'is_completed', 'depth']
     def to_internal_value(self, data):
         return super().to_internal_value(data)
 

@@ -24,6 +24,15 @@ class Todo(TimeStamp):
     order = models.CharField(max_length=255)
     is_completed = models.BooleanField(default=False)
     
+    @property
+    def depth(self):
+        if self.parent_id is None:
+            return 1
+        elif self.parent_id.parent_id is None:
+            return 2
+        else:
+            return 3
+        
     def __str__(self):
         return self.content
     
