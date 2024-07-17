@@ -2,7 +2,6 @@ from django.db import models
 from accounts.models import User
 
 
-
 class TimeStamp(models.Model):
     created_at = models.DateTimeField(null=True, auto_now_add=True)
     updated_at = models.DateTimeField(null=True, auto_now=True)
@@ -30,8 +29,11 @@ class Todo(TimeStamp):
             return 1
         elif self.parent_id.parent_id is None:
             return 2
-        else:
+        elif self.parent_id.parent_id.parent_id is None:
             return 3
+        else:
+            return 4
+
         
     def __str__(self):
         return self.content
