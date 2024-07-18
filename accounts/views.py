@@ -57,5 +57,4 @@ class GoogleLogin(APIView):
                     }
                 )
         except Exception as e:
-            print("e", e)
             return Response(status=status.HTTP_400_BAD_REQUEST, data={"error": str(e)})
