@@ -41,5 +41,6 @@ class User(AbstractUser, TimeStamp):
 
 class Device(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, null=True)
     created_at = models.DateTimeField(null=True, auto_now_add=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
