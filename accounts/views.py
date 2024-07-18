@@ -38,6 +38,9 @@ class GoogleLogin(APIView):
 
     def post(self, request):
         token = request.data.get("token")
+        device_token = request.data.get("deviceToken")
+        if not device_token or not token:
+            raise Exception("device token and token is required")
         try:
             idinfo = id_token.verify_oauth2_token(
                 token, requests.Request(), audience=GOOGLE_CLIENT_ID
@@ -45,9 +48,7 @@ class GoogleLogin(APIView):
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
                 user, _ = User.objects.get_or_create(username=email, password="")
-                device_token = request.data.get("device_token")
-                if not device_token:
-                    raise Exception("device token is required")
+                Device.objects.get_or_create(user_id=user, token=device_token)
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
                     {
@@ -56,4 +57,5 @@ class GoogleLogin(APIView):
                     }
                 )
         except Exception as e:
+            print("e", e)
             return Response(status=status.HTTP_400_BAD_REQUEST, data={"error": str(e)})
