@@ -11,4 +11,5 @@ urlpatterns = [
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path("login/google/", GoogleLogin.as_view(), name="google_login"),
     path("test/", TestView.as_view(), name="test"),
+    path("user/", UserRetrieveView.as_view(), name="user"),
 ]

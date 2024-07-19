@@ -12,9 +12,9 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.views import TokenObtainPairView
 from accounts.serializers import *
 from accounts.tokens import CustomRefreshToken
+
 
 User = get_user_model()
 
@@ -56,5 +56,16 @@ class GoogleLogin(APIView):
                         "access": str(refresh.access_token),
                     }
                 )
-        except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={"error": str(e)})
+        except ValueError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserRetrieveView(APIView):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = User.objects.get(username=request.user.username)
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
