@@ -62,10 +62,12 @@ class GoogleLogin(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserRetrieveView(RetrieveAPIView):
+class UserRetrieveView(APIView):
     serializer_class = UserSerializer
     queryset = User.objects.all()
     permission_classes = [IsOwner]
 
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    def get(self, request):
+        user = User.objects.get(username=request.user.username)
+        serializer = UserSerializer(user)
+        return Response(serializer.data)

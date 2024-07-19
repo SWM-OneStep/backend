@@ -52,7 +52,6 @@ class LoginPayloadSerializer(LoginRequestSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    pass
 
     class Meta:
         model = User
