@@ -6,7 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 from todos.models import Todo
 from accounts.models import User
-from todos.serializers import TodoSerializer, TodoUpdateSerializer
+from todos.serializers import TodoSerializer, TodoGetSerializer
 import re
 from django.utils import timezone
 
@@ -63,7 +63,7 @@ class TodoView(APIView):
                 deleted_at__isnull=True,
             ).order_by('order')
 
-        serializer = TodoSerializer(todos, many=True)
+        serializer = TodoGetSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def patch(self, request):
@@ -84,7 +84,7 @@ class TodoView(APIView):
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = TodoUpdateSerializer(todo, data=update_data, partial=True)
+        serializer = TodoSerializer(todo, data=update_data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
