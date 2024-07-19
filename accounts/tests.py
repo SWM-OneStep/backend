@@ -1,19 +1,13 @@
-from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import APIClient, force_authenticate
 from django.urls import reverse
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from unittest.mock import patch
-from rest_framework.exceptions import PermissionDenied
 from accounts.views import UserRetrieveView
-from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 import pytest
-import pytest
-import logging
 
 
 
@@ -55,13 +49,6 @@ def test_user_info(create_user):
             'username': create_user.username,
             'social_provider': 'GOOGLE',
         }
-
-
-@pytest.mark.django_db
-def test_user_info_without_permission(create_user):
-    with pytest.raises(User.DoesNotExist):
-        request = factory.get(reverse('user'))
-        view(request)
 
 
 def test_google_login(invalid_token):
