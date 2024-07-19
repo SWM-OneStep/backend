@@ -15,6 +15,8 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
+from accounts.permissions import IsOwner
+
 
 User = get_user_model()
 
@@ -56,11 +58,14 @@ class GoogleLogin(APIView):
                         "access": str(refresh.access_token),
                     }
                 )
-        except ValueError as e:
+        except ValueError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserRetrieveView(RetrieveAPIView):
     serializer_class = UserSerializer
     queryset = User.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = [IsOwner]
+
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
