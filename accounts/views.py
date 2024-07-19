@@ -1,7 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.generics import RetrieveAPIView
 from accounts.models import *
 from accounts.serializers import *
 import os
@@ -13,7 +12,6 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.views import TokenObtainPairView
 from accounts.serializers import *
 from accounts.tokens import CustomRefreshToken
 
