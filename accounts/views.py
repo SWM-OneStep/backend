@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.generics import RetrieveAPIView
 from accounts.models import *
 from accounts.serializers import *
 import jwt
@@ -12,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -43,8 +44,11 @@ class GoogleLogin(APIView):
             )
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                name = idinfo.get("name", "")
-                user, _ = User.objects.get_or_create(username=email, password="")
+                user = None
+                try:
+                    user = User.objects.get(username=email)
+                except User.DoesNotExist:
+                    user = User.objects.create(username=email, password="", email=email)
                 refresh = RefreshToken.for_user(user)
                 return Response(
                     {
@@ -54,3 +58,9 @@ class GoogleLogin(APIView):
                 )
         except ValueError as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserRetrieveView(RetrieveAPIView):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
