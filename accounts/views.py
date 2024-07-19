@@ -13,9 +13,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
-from accounts.permissions import IsOwner
 
 
 User = get_user_model()
@@ -65,7 +64,7 @@ class GoogleLogin(APIView):
 class UserRetrieveView(APIView):
     serializer_class = UserSerializer
     queryset = User.objects.all()
-    permission_classes = [IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = User.objects.get(username=request.user.username)
