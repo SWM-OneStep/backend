@@ -44,17 +44,8 @@ class TodoSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         parent = data.get('parent_id', None)
-        depth = 1
-        if parent is None:
-            depth = 1
-        elif parent.parent_id is None:
-            depth = 2
-        elif parent.parent_id.parent_id is None:
-            depth = 3
-        else:
-            depth = 4
-        
-        if depth > 3:
+
+        if parent is not None and parent.depth >= 3:
             raise serializers.ValidationError("depth should be less than 4")
         return data
         
