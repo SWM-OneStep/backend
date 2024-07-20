@@ -1,23 +1,10 @@
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
 from datetime import datetime
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from dotenv import load_dotenv
-import os
-from django.conf import settings
+from django.contrib.auth import get_user_model
 
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    google_client_id = settings.SECRETS.get("GCID")
-
-    @classmethod
-    def get_token(self, user):
-        token = super().get_token(user)
-        token["aud"] = self.google_client_id
-        return token
-
+User = get_user_model()
 
 class LoginRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="email")
@@ -46,3 +33,11 @@ class LoginPayloadSerializer(LoginRequestSerializer):
     def is_valid(self, *, raise_exception=False):
 
         return super().is_valid(raise_exception=raise_exception)
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'social_provider']
+
