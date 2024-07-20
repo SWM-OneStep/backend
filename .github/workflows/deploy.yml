@@ -62,6 +62,12 @@ jobs:
                 sudo usermod -a -G docker ec2-user
             fi
 
+            # Stop and remove any existing MySQL container
+            if [ $(docker ps -a -q --filter name=mysql-db) ]; then
+                docker stop mysql-db
+                docker rm mysql-db
+            fi
+
             # Extract code files
             mkdir -p ~/my-django-app
             tar -xzf my-django-app.tar.gz -C ~/my-django-app
