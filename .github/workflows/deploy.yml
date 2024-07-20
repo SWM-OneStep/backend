@@ -68,6 +68,9 @@ jobs:
                 docker rm mysql-db
             fi
 
+            # Install required libraries for mysqlclient
+            sudo yum install -y mysql-devel gcc
+
             # Extract code files
             mkdir -p ~/my-django-app
             tar -xzf my-django-app.tar.gz -C ~/my-django-app
