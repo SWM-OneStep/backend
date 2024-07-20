@@ -20,13 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Load all secret variables stored in AWS secret manager
-SECRETS = get_secret()
+SECRETS = eval(get_secret())
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY")
+SECRET_KEY = SECRETS.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -90,7 +90,7 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_OBTAIN_SERIALIZER": "accounts.serializers.CustomTokenObtainPairSerializer",
-    "AUDIENCE": os.environ.get("GCID"),
+    "AUDIENCE": SECRETS.get("GCID"),
 }
 
 # Allauth settings
@@ -131,16 +131,14 @@ AUTH_USER_MODEL = "accounts.User"
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-load_dotenv()
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("DB_NAME"),
-        "USER": os.environ.get("DB_USER"),
-        "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": os.environ.get("DB_HOST", 'db'),
-        "PORT": os.environ.get("DB_PORT"),
+        "NAME": SECRETS.get("DB_NAME"),
+        "USER": SECRETS.get("DB_USER"),
+        "PASSWORD": SECRETS.get("DB_PASSWORD"),
+        "HOST": SECRETS.get("DB_HOST", 'db'),
+        "PORT": SECRETS.get("DB_PORT"),
     }
 }
 

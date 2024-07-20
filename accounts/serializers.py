@@ -6,12 +6,11 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from dotenv import load_dotenv
 import os
-
-load_dotenv()
+from django.conf import settings
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    google_client_id = os.environ.get("GCID")
+    google_client_id = settings.SECRETS.get("GCID")
 
     @classmethod
     def get_token(self, user):

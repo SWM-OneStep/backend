@@ -5,7 +5,6 @@ from accounts.models import *
 from accounts.serializers import *
 import jwt
 import os
-from dotenv import load_dotenv
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,15 +13,13 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 User = get_user_model()
 
 
-load_dotenv()
-
-
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
-GOOGLE_CLIENT_ID = os.environ.get("GCID")
+JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
+GOOGLE_CLIENT_ID = settings.SECRETS.get("GCID")
 
 
 class TestView(APIView):
@@ -33,7 +30,7 @@ class TestView(APIView):
 
 
 class GoogleLogin(APIView):
-    google_client_id = os.environ.get("GCID")
+    google_client_id = settings.SECRETS.get("GCID")
 
     def post(self, request):
         token = request.data.get("token")
