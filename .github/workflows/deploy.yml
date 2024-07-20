@@ -37,7 +37,9 @@ jobs:
 
       - name: Archive code files
         run: |
-          tar --ignore-failed-read -czf my-django-app.tar.gz .
+          mkdir -p archive
+          cp -r * archive/
+          tar -czf my-django-app.tar.gz -C archive .
 
       - name: Upload code to EC2
         run: |
