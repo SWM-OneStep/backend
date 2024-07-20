@@ -40,7 +40,7 @@ jobs:
         run: |
           INSTANCE_ID=${{ secrets.EC2_INSTANCE_ID }}
           PUBLIC_DNS=${{ secrets.EC2_PUBLIC_DNS }}
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} ec2-user@$PUBLIC_DNS << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} ec2-user@${{secrets.EC2_PUBLIC_DNS}} << 'EOF'
             # Install Docker if not installed
             if ! command -v docker &> /dev/null
             then
