@@ -1,5 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.utils.translation import gettext_lazy as _
 
 
 class TimeStamp(models.Model):
@@ -11,43 +13,34 @@ class TimeStamp(models.Model):
         abstract = True
 
 
-class UserSignupManager(models.Manager):
-
-    def create_user(self, email):
-        try:
-            user = User.objects.get(email=email)
-            return user
-        except User.DoesNotExist:
-            user = User.objects.create(email=email)
-            return user
-
-
-class User(TimeStamp):
+class User(AbstractUser, TimeStamp):
 
     class SocialProvider(models.TextChoices):
         GOOGLE = "GOOGLE"
         KAKAO = "KAKAO"
         NAVER = "NAVER"
 
-    email = models.EmailField(unique=True)
-    signup = UserSignupManager()
-    name = models.CharField(max_length=100, null=True)
+    username_validator = UnicodeUsernameValidator()
+    username = models.CharField(
+        _("username"),
+        max_length=150,
+        unique=True,
+        help_text=_(
+            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+        ),
+        validators=[username_validator],
+        error_messages={
+            "unique": _("A user with that username already exists."),
+        },
+    )
+    password = models.CharField(_("password"), max_length=128, null=True)
     social_provider = models.CharField(
         max_length=30, choices=SocialProvider.choices, default=SocialProvider.GOOGLE
     )
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
-
-    @property
-    def is_anonymous(self):
-        return False
-
-    @property
-    def is_authenticated(self):
-        return True
 
 
-class RefreshToken(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    token = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
+class Device(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, null=True)
+    created_at = models.DateTimeField(null=True, auto_now_add=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)

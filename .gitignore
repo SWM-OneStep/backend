@@ -9,6 +9,8 @@
 Icon
 
 
+# Private Settings
+onestep_dev/
 # Thumbnails
 ._*
 
@@ -88,3 +90,6 @@ local_settings.py
 
 .env
 db.sqlite3
+
+/pyenv
+/.ruff_cache
