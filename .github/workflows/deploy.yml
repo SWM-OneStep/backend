@@ -30,10 +30,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION_NAME }}
 
-      - name: Add SSH key
+      - name: Decode SSH key
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
-            chmod 600 ec2_key.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" | base64 --decode > ec2_key.pem
+          chmod 600 ec2_key.pem
 
       - name: Archive code files
         run: |
@@ -52,7 +52,7 @@ jobs:
         run: |
           INSTANCE_ID=${{ secrets.EC2_INSTANCE_ID }}
           PUBLIC_DNS=${{ secrets.EC2_PUBLIC_DNS }}
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} ec2-user@${{secrets.EC2_PUBLIC_DNS}} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ec2-user@$PUBLIC_DNS << 'EOF'
             # Install Docker if not installed
             if ! command -v docker &> /dev/null
             then
@@ -61,6 +61,10 @@ jobs:
                 sudo service docker start
                 sudo usermod -a -G docker ec2-user
             fi
+
+            # Extract code files
+            mkdir -p ~/my-django-app
+            tar -xzf my-django-app.tar.gz -C ~/my-django-app
             
             # Pull and run MySQL container
             docker run --name mysql-db -e MYSQL_ROOT_PASSWORD=${{ secrets.DB_PASSWORD }} -e MYSQL_DATABASE=${{ secrets.DB_NAME }} -e MYSQL_USER=${{ secrets.DB_USER }} -e MYSQL_PASSWORD=${{ secrets.DB_PASSWORD }} -p 3306:3306 -d mysql:latest
@@ -79,3 +83,7 @@ jobs:
             python manage.py migrate
             sudo systemctl restart my-django-app.service
           EOF
+
+      - name: Clean up
+        run: |
+          rm -rf ec2_key.pem my-django-app.tar.gz archive
