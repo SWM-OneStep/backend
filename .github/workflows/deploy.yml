@@ -30,11 +30,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION_NAME }}
 
+      - name: Add SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
+            chmod 600 ec2_key.pem
+
       - name: Upload code to EC2
         run: |
           INSTANCE_ID=${{ secrets.EC2_INSTANCE_ID }}
           PUBLIC_DNS=${{ secrets.EC2_PUBLIC_DNS }}
-          scp -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_KEY }} -r ./* ec2-user@${{secrets.EC2_PUBLIC_DNS}}:~/my-django-app
+          scp -o StrictHostKeyChecking=no -i ec2_key.pem my-django-app.tar.gz ec2-user@${{secrets.EC2_PUBLIC_DNS}}:~/
 
       - name: SSH into EC2 and run deployment script
         run: |
