@@ -40,7 +40,7 @@ class TodoView(APIView):
     
     def get(self, request):
         '''
-        - 이 함수는 todo list를 불러오는 함수입니다.
+        - 이 함수는 today todo list를 불러오는 함수입니다.
         - 입력 :  user_id, start_date, end_date
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
@@ -51,6 +51,7 @@ class TodoView(APIView):
         '''
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
+        due_date = request.GET.get('due_date')
 
         if start_date and end_date:
             todos = Todo.objects.filter(

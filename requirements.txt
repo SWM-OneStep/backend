@@ -56,3 +56,5 @@ uritemplate==4.1.1
 wheel==0.43.0
 # win-inet-pton @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/win_inet_pton_1699472992992/work
 google-auth==2.32.0
+# camelcase
+djangorestframework-camel-case==1.4.2
