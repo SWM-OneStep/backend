@@ -6,27 +6,29 @@ from accounts.models import User
 import django.utils.timezone as timezone
 
 class CategorySerializer(serializers.ModelSerializer):
-    # name = serializers.CharField(max_length=50)
 
     class Meta:
         model = Category
         fields = "__all__"
 
-class TodoGetSerializer(serializers.ModelSerializer):
+class SubTodoSerializer(serializers.ModelSerializer):
     content = serializers.CharField(max_length=255)
-    category_id = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True)
-    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=True)
-    start_date = serializers.DateField(allow_null=True, required=False)
-    end_date = serializers.DateField(allow_null=True, required=False)
-    order = serializers.CharField(max_length = 255, required=False)
-    is_completed = serializers.BooleanField(default=False, required=False)
+    todo_id = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), required=True)
+    date = serializers.DateField()
+    order = serializers.CharField(max_length=255)
+    is_completed = serializers.BooleanField(default=False)
 
-    
+    class Meta:
+        model = SubTodo
+        fields = "__all__"
+
+class TodoGetSerializer(serializers.ModelSerializer):
+    subtodos = SubTodoSerializer(many=True, read_only=True) 
+
     class Meta:
         model = Todo
-        fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed']
+        fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed', 'subtodos']
 
-    
     def to_internal_value(self, data):
         return super().to_internal_value(data)
 
@@ -64,16 +66,6 @@ class TodoSerializer(serializers.ModelSerializer):
         return instance
 
 
-class SubTodoSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(max_length=255)
-    todo_id = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), required=True)
-    date = serializers.DateField()
-    order = serializers.CharField(max_length=255)
-    is_completed = serializers.BooleanField(default=False)
-
-    class Meta:
-        model = SubTodo
-        fields = "__all__"
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

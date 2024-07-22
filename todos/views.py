@@ -45,22 +45,23 @@ class TodoView(APIView):
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
 
+        형식 : 
         구현되어야 할 사항
         - order 및 depth 에 따른 정렬
         '''
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
+        user_id = request.GET.get('user_id')
 
         if start_date and end_date:
             todos = Todo.objects.filter(
-                deleted_at__isnull=True,
+                user_id = user_id,
                 start_date__gte=start_date,
-                end_date__lte=end_date
+                end_date__lte=end_date,
+                deleted_at__isnull=True
             ).order_by('order')
         else:
-            todos = Todo.objects.filter(
-                deleted_at__isnull=True,
-            ).order_by('order')
+            todos = Todo.objects.all().order_by('order')
 
         serializer = TodoGetSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -143,7 +144,7 @@ class SubTodoView(APIView):
         '''
         subtodo_id = request.GET.get('subtodo_id')
         try:
-            sub_todo = SubTodo.objects.get(id=subtodo_id)
+            sub_todo = SubTodo.objects.get(id=subtodo_id, deleted_at__isnull=True)
         except SubTodo.DoesNotExist:
             return Response({"error": "SubTodo not found"}, status=status.HTTP_404_NOT_FOUND)
     
@@ -185,7 +186,7 @@ class SubTodoView(APIView):
         subtodo_id = request.data.get('subtodo_id')
 
         try:
-            sub_todo = SubTodo.objects.get(id=subtodo_id)
+            sub_todo = SubTodo.objects.get(id=subtodo_id, deleted_at__isnull=True)
         except SubTodo.DoesNotExist:
             return Response({"error": "SubTodo not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -225,7 +226,7 @@ class CategoryView(APIView):
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            category = Category.objects.get(id=category_id)
+            category = Category.objects.get(id=category_id, deleted_at__isnull=True)
         except Category.DoesNotExist:
             return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
         
@@ -255,7 +256,7 @@ class CategoryView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 category입니다.
         '''
         category_id = request.data.get('category_id')
-        category = Category.objects.get(id=category_id)
+        category = Category.objects.get(id=category_id, deleted_at__isnull=True)
         if category.deleted_at is not None:
             return Response({"error": "Category already deleted"}, status=status.HTTP_400_BAD_REQUEST)
         category.deleted_at = timezone.now()
