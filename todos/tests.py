@@ -150,7 +150,7 @@ class TodoCreateTestCase(APITestCase):
             {
                 'user_id': self.user.id,
                 'start_date': '2021-01-01',
-                'deadline': '2021-01-03',
+                'end_date': '2021-01-03',
                 'content': 'test',
                 'category': '#FFFFFF',
                 'parent_id': ''
@@ -317,7 +317,7 @@ class TodoUpdateTestCase(APITestCase):
                 'content': 'test',
                 'category': '#FFFFFF',
                 'start_date': '2021-01-01',
-                'deadline': '2021-01-03'
+                'end_date': '2021-01-03'
             }
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
