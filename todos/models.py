@@ -30,13 +30,16 @@ class SubTodo(TimeStamp):
     content = models.CharField(max_length=255)
     todo_id = models.ForeignKey('Todo', on_delete=models.CASCADE)
     date = models.DateField()
+    order = models.CharField(max_length=255, null=True)
     is_completed = models.BooleanField(default=False)
     
     def __str__(self):
         return self.content
 
 
-class Category(models.Model):
+class Category(TimeStamp):
     id = models.AutoField(primary_key=True)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     color = models.CharField(max_length=7)
     title = models.CharField(max_length=100, null=True)
+    order = models.CharField(max_length=255, null=True)
