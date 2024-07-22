@@ -6,11 +6,14 @@ from drf_yasg.utils import swagger_auto_schema
 
 from todos.models import Todo, SubTodo, Category
 from accounts.models import User
-from todos.serializers import TodoSerializer, TodoGetSerializer, SubTodoSerializer, CategorySerializer
+from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializer, CategorySerializer, GetCategoryTodoSerializer
 import re
 from django.utils import timezone
 
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 class TodoView(APIView):
+    permission_classes = [AllowAny]
     queryset = Todo.objects.all()
 
     def post(self, request):
@@ -63,7 +66,7 @@ class TodoView(APIView):
         else:
             todos = Todo.objects.all().order_by('order')
 
-        serializer = TodoGetSerializer(todos, many=True)
+        serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def patch(self, request):
@@ -119,10 +122,11 @@ class TodoView(APIView):
     
 
 class SubTodoView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         '''
         - 이 함수는 sub todo를 생성하는 함수입니다.
-        - 입력 : user_id, todo_id, date, content, category
+        - 입력 : user_id, todo, date, content, category
         - content 는 암호화 되어야 합니다(// 미정)
         - date 는 parent의 start_date와 end_date의 사이여야 합니다.
         '''
@@ -199,6 +203,7 @@ class SubTodoView(APIView):
         return Response({"subtodo_id": sub_todo.id, "message": "SubTodo deleted successfully"}, status=status.HTTP_200_OK)
     
 class CategoryView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         '''
         - 이 함수는 category를 생성하는 함수입니다.
@@ -212,6 +217,8 @@ class CategoryView(APIView):
             serializer.save()
             return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+
     def patch(self, request):
         '''
         - 이 함수는 category를 수정하는 함수입니다.
@@ -262,3 +269,29 @@ class CategoryView(APIView):
         category.deleted_at = timezone.now()
         category.save()
         return Response({"category_id": category.id, "message": "Category deleted successfully"}, status=status.HTTP_200_OK)
+    
+class TodayTodoView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        '''
+        - 이 함수는 today todo list를 불러오는 함수입니다.
+        - 입력 :  user_id, start_date, end_date
+        - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
+        - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
+        - order 의 순서로 정렬합니다.
+        '''
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        user_id = request.GET.get('user_id')
+
+        if start_date and end_date:
+            todos = Category.objects.filter(
+                user_id = user_id,
+                start_date__gte=start_date,
+                end_date__lte=end_date
+            ).order_by('order')
+        else:
+            todos = Category.objects.filter(user_id = user_id).order_by('order')
+        
+        serializer = GetCategoryTodoSerializer(todos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
