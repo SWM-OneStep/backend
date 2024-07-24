@@ -43,7 +43,7 @@ class TodoView(APIView):
     def get(self, request):
         '''
         - 이 함수는 today todo list를 불러오는 함수입니다.
-        - 입력 :  user_id, start_date, end_date
+        - 입력 :  user_id(필수), start_date, end_date
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
@@ -55,6 +55,8 @@ class TodoView(APIView):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         user_id = request.GET.get('user_id')
+        if user_id is None:
+            return Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         if start_date and end_date:
             todos = Todo.objects.filter(
@@ -64,7 +66,7 @@ class TodoView(APIView):
                 deleted_at__isnull=True
             ).order_by('order')
         else:
-            todos = Todo.objects.all().order_by('order')
+            todos = Todo.objects.filter(user_id = user_id, deleted_at__isnull=True).order_by('order')
 
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -108,7 +110,7 @@ class TodoView(APIView):
         todo_id = request.data.get('todo_id')
 
         try:
-            todo = Todo.objects.get(id=todo_id)
+            todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -164,12 +166,13 @@ class SubTodoView(APIView):
         subtodo_id = request.data.get('subtodo_id')
         update_fields = ['content', 'date', 'is_completed', 'order']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
+        
         if not update_data:
             return Response({"error": "At least one of content, date, or parent_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            sub_todo = SubTodo.objects.get(id=subtodo_id)
+            sub_todo = SubTodo.objects.get(id=subtodo_id, deleted_at__isnull=True)
         except SubTodo.DoesNotExist:
             return Response({"error": "SubTodo not found"}, status=status.HTTP_404_NOT_FOUND)
         
@@ -246,15 +249,20 @@ class CategoryView(APIView):
     def get(self, request):
         '''
         - 이 함수는 category list를 불러오는 함수입니다.
-        - 입력 : user_id
+        - 입력 : user_id(필수)
         - user_id에 해당하는 category list를 불러옵니다.
         '''
         user_id = request.GET.get('user_id')
+        if user_id is None:
+            return  Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
         categories = Category.objects.filter(
-            user_id=user_id
+            user_id=user_id,
+            deleted_at__isnull=True
         )
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def delete(self, request):
         '''
         - 이 함수는 category를 삭제하는 함수입니다.
@@ -275,7 +283,7 @@ class TodayTodoView(APIView):
     def get(self, request):
         '''
         - 이 함수는 today todo list를 불러오는 함수입니다.
-        - 입력 :  user_id, start_date, end_date
+        - 입력 :  user_id(필수), start_date, end_date
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
@@ -284,14 +292,25 @@ class TodayTodoView(APIView):
         end_date = request.GET.get('end_date')
         user_id = request.GET.get('user_id')
 
+        if user_id is None:
+            return Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
+
         if start_date and end_date:
             todos = Category.objects.filter(
                 user_id = user_id,
                 start_date__gte=start_date,
-                end_date__lte=end_date
+                end_date__lte=end_date,
+                deleted_at__isnull=True
             ).order_by('order')
         else:
-            todos = Category.objects.filter(user_id = user_id).order_by('order')
+            todos = Category.objects.filter(user_id = user_id, deleted_at__isnull=True).order_by('order')
         
         serializer = GetCategoryTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+'''
+개발해주세요
+1. Deleted at 이 널이 아니면 보내지마세요
+2. 아이디만주지말고 다 주세요
+'''
