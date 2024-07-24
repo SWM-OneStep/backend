@@ -34,6 +34,10 @@ class TodoView(APIView):
         - 암호화
         '''
         data = request.data
+
+        if data['start_date'] > data['end_date']:
+            return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -84,6 +88,8 @@ class TodoView(APIView):
             return Response({"error": "At least one of content, category_id, start_date, end_date, or parent_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
+        if update_data['start_date'] > update_data['end_date']:
+            return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
