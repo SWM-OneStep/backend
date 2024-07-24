@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
+from django.db.models import Prefetch
 
 from todos.models import Todo, SubTodo, Category
 from accounts.models import User
@@ -35,9 +36,8 @@ class TodoView(APIView):
         '''
         data = request.data
 
-        if data['start_date'] > data['end_date']:
+        if data['start_date'] and data['end_date'] and data['start_date'] > data['end_date']:
             return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -61,16 +61,38 @@ class TodoView(APIView):
         user_id = request.GET.get('user_id')
         if user_id is None:
             return Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if start_date and end_date:
+            
+        if end_date ^ start_date: # start_date or end_date is None
+            if start_date:
+                todos = Todo.objects.filter(
+                    user_id = user_id,
+                    start_date__gte=start_date,
+                    deleted_at__isnull=True
+                ).order_by('order').prefetch_related(
+                    Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True).order_by('order'))
+                )
+                
+            else:
+                todos = Todo.objects.filter(
+                    user_id = user_id,
+                    end_date__lte=end_date,
+                    deleted_at__isnull=True
+                ).order_by('order').prefetch_related(
+                    Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True).order_by('order'))
+                )
+        elif start_date and end_date: # start_date and end_date are not None
             todos = Todo.objects.filter(
                 user_id = user_id,
                 start_date__gte=start_date,
                 end_date__lte=end_date,
                 deleted_at__isnull=True
-            ).order_by('order')
-        else:
-            todos = Todo.objects.filter(user_id = user_id, deleted_at__isnull=True).order_by('order')
+            ).order_by('order').prefetch_related(
+                Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True).order_by('order'))
+            )
+        else: # start_date and end_date are None
+            todos = Todo.objects.filter(user_id = user_id, deleted_at__isnull=True).order_by('order').prefetch_related(
+                Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True).order_by('order'))
+            )
 
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -88,7 +110,7 @@ class TodoView(APIView):
             return Response({"error": "At least one of content, category_id, start_date, end_date, or parent_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
-        if update_data['start_date'] > update_data['end_date']:
+        if update_data['start_date'] and update_data['end_date'] and update_data['start_date'] > update_data['end_date']:
             return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -303,14 +325,30 @@ class TodayTodoView(APIView):
 
         if start_date and end_date:
             todos = Category.objects.filter(
-                user_id = user_id,
-                start_date__gte=start_date,
-                end_date__lte=end_date,
+                user_id=user_id,
+                todos__start_date__gte=start_date,
+                todos__end_date__lte=end_date,
                 deleted_at__isnull=True
-            ).order_by('order')
+            ).order_by('order').prefetch_related(
+                Prefetch('todos', queryset=Todo.objects.filter(deleted_at__isnull=True).order_by('order').prefetch_related(
+                    Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True).order_by('order'))
+                ))
+            )
         else:
-            todos = Category.objects.filter(user_id = user_id, deleted_at__isnull=True).order_by('order')
+            todos = Category.objects.filter(
+                user_id=user_id,
+                deleted_at__isnull=True
+            ).order_by('order').prefetch_related(
+                Prefetch('todos', queryset=Todo.objects.filter(deleted_at__isnull=True).order_by('order').prefetch_related(
+                    Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True).order_by('order'))
+                ))
+            )
         
         serializer = GetCategoryTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+'''
+checklist
+- today 뷰에서 삭제된 것이 안 보이도록 할 것 
+- start_date와 end_date에 대해 체크할 것 (get 과 패치에 관해서 해결할 것)
+'''

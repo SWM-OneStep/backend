@@ -20,7 +20,8 @@ class SubTodoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubTodo
-        fields = "__all__"
+        # fields = "__all__"
+        fields = ['id', 'content', 'todo', 'date', 'order', 'is_completed', 'deleted_at']
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

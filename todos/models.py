@@ -29,7 +29,7 @@ class SubTodo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
     todo = models.ForeignKey('Todo', on_delete=models.CASCADE, related_name='subtodos')
-    date = models.DateField()
+    date = models.DateField(null=True)
     order = models.CharField(max_length=255, null=True)
     is_completed = models.BooleanField(default=False)
     
