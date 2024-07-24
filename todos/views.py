@@ -37,7 +37,7 @@ class TodoView(APIView):
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def get(self, request):
@@ -138,7 +138,7 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -218,7 +218,7 @@ class CategoryView(APIView):
         serializer = CategorySerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            return Response({"id": serializer.instance.id}, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -308,9 +308,3 @@ class TodayTodoView(APIView):
         serializer = GetCategoryTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-
-'''
-개발해주세요
-1. Deleted at 이 널이 아니면 보내지마세요
-2. 아이디만주지말고 다 주세요
-'''
