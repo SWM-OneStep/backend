@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from django.db.models import Prefetch
+from todos.lexorank import LexoRank
 
 from todos.models import Todo, SubTodo, Category
 from accounts.models import User
@@ -12,6 +13,28 @@ import re
 from django.utils import timezone
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
+
+def validate_order(prev, next, result):
+    result = LexoRank(result)
+    if prev is None and next is None:
+        return True
+    if prev is None:
+        print("가장 뒤")
+        next_lexo = LexoRank(next)
+        if next_lexo.compare_to(result) <= 0:
+            return False
+    elif next is None:
+        print("가장 앞")
+        prev_lexo = LexoRank(prev)
+        if prev_lexo.compare_to(result) >= 0:
+            return False
+    else:
+        print("between")
+        prev_lexo = LexoRank(prev)
+        next_lexo = LexoRank(next)
+        if prev_lexo.compare_to(result) >= 0 or next_lexo.compare_to(result) <= 0:
+            return False
+    return True
 
 class TodoView(APIView):
     permission_classes = [AllowAny]
@@ -346,9 +369,9 @@ class TodayTodoView(APIView):
         
         serializer = GetCategoryTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-'''
-checklist
-- today 뷰에서 삭제된 것이 안 보이도록 할 것 
-- start_date와 end_date에 대해 체크할 것 (get 과 패치에 관해서 해결할 것)
-'''
+    def post(self, request):
+        prev = request.data.get('prev')
+        next = request.data.get('next')
+        result = request.data.get('result')
+
+        return Response(validate_order(prev, next, result))
