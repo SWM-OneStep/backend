@@ -66,12 +66,26 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    'djangorestframework_camel_case.middleware.CamelCaseMiddleWare',
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    'DEFAULT_RENDERER_CLASSES': (
+        'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
+        'djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer',
+        # Any other renders
+    ),
+
+    'DEFAULT_PARSER_CLASSES': (
+        # If you use MultiPartFormParser or FormParser, we also have a camel case version
+        'djangorestframework_camel_case.parser.CamelCaseFormParser',
+        'djangorestframework_camel_case.parser.CamelCaseMultiPartParser',
+        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+        # Any other parsers
+    ),
 }
 
 # SimpleJWT settings
@@ -145,7 +159,8 @@ DATABASES = {
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
-        "HOST": SECRETS.get("DB_HOST", 'db'),
+        # "HOST": SECRETS.get("DB_HOST", 'db'),
+        "HOST" : "db",
         "PORT": SECRETS.get("DB_PORT"),
     }
 }

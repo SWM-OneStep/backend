@@ -1,57 +1,70 @@
 # todos/serializers.py
 from rest_framework import serializers
-from .models import Todo, Category
+from .models import Todo, Category, SubTodo
 from django.http import QueryDict
 from accounts.models import User
 import django.utils.timezone as timezone
 
 class CategorySerializer(serializers.ModelSerializer):
-    # name = serializers.CharField(max_length=50)
 
     class Meta:
         model = Category
         fields = "__all__"
 
-class TodoGetSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(max_length=50)
-    category_id = CategorySerializer()
-    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=True)
-    start_date = serializers.DateField(allow_null=True, required=False)
-    deadline = serializers.DateField(allow_null=True, required=False)
-    due_date = serializers.DateField(allow_null=True, required=False)
-    parent_id = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), allow_null=True, required=False)
-    order = serializers.CharField(max_length = 255)
+class SubTodoSerializer(serializers.ModelSerializer):
+    content = serializers.CharField(max_length=255)
+    todo = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), required=True)
+    date = serializers.DateField()
+    order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False)
 
-    
+    class Meta:
+        model = SubTodo
+        fields = "__all__"
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = "__all__"
+
+class GetTodoSerializer(serializers.ModelSerializer):
+    subtodos = SubTodoSerializer(many=True, read_only=True) 
+
     class Meta:
         model = Todo
-        fields = ['id', 'content', 'category_id', 'start_date', 'deadline', 'due_date', 'parent_id', 'user_id', 'order', 'is_completed', 'depth']
+        fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed', 'subtodos']
 
-    
-    def to_internal_value(self, data):
-        return super().to_internal_value(data)
+
+class GetCategoryTodoSerializer(serializers.ModelSerializer):
+    todos = GetTodoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'color', 'title', 'order', 'todos']
+
 
 class TodoSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(max_length=50)
+    content = serializers.CharField(max_length=255)
     category_id = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True)
+    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=True)
     start_date = serializers.DateField(allow_null=True, required=False)
-    deadline = serializers.DateField(allow_null=True, required=False)
-    due_date = serializers.DateField(allow_null=True, required=False)
-    parent_id = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), allow_null=True, required=False)
+    end_date = serializers.DateField(allow_null=True, required=False)
     order = serializers.CharField(max_length = 255, required=False)
     is_completed = serializers.BooleanField(default=False, required=False)
     
     def validate(self, data):
-        parent = data.get('parent_id', None)
+        start_date = data.get('start_date', None)
+        end_date = data.get('end_date', None)
 
-        if parent is not None and parent.depth >= 3:
-            raise serializers.ValidationError("depth should be less than 4")
+        if start_date is not None and end_date is not None:
+            if start_date > end_date:
+                raise serializers.ValidationError("start date should be less than end date")
+
         return data
         
     class Meta:
         model = Todo
-        fields = ['id', 'content', 'category_id', 'start_date', 'deadline', 'due_date', 'parent_id', 'user_id', 'order', 'is_completed', 'depth']
+        fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed']
 
     def update(self, instance, validated_data):
         # Update the fields as usual
@@ -62,3 +75,5 @@ class TodoSerializer(serializers.ModelSerializer):
         instance.updated_at = timezone.now()
         instance.save()
         return instance
+
+
