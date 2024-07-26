@@ -369,9 +369,3 @@ class TodayTodoView(APIView):
         
         serializer = GetCategoryTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    def post(self, request):
-        prev = request.data.get('prev')
-        next = request.data.get('next')
-        result = request.data.get('result')
-
-        return Response(validate_order(prev, next, result))
