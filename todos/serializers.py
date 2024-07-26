@@ -1,7 +1,6 @@
 # todos/serializers.py
 from rest_framework import serializers
 from .models import Todo, Category, SubTodo
-from django.http import QueryDict
 from accounts.models import User
 import django.utils.timezone as timezone
 

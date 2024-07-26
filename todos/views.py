@@ -3,12 +3,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from django.db.models import Prefetch
 from todos.lexorank import LexoRank
 
 from todos.models import Todo, SubTodo, Category
 from accounts.models import User
 from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializer, CategorySerializer, GetCategoryTodoSerializer
+from todos.swagger_serializers import SwaggerTodoPatchSerializer, SwaggerSubTodoPatchSerializer, SwaggerCategoryPatchSerializer
 import re
 from django.utils import timezone
 
@@ -37,6 +39,7 @@ class TodoView(APIView):
     permission_classes = [AllowAny]
     queryset = Todo.objects.all()
 
+    @swagger_auto_schema(tags=['Todo'], request_body=TodoSerializer, operation_summary='Create a todo', responses={201: TodoSerializer})
     def post(self, request):
         '''
         - 이 함수는 todo를 생성하는 함수입니다.
@@ -72,6 +75,11 @@ class TodoView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(tags=['Todo'],manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='user_id', required=True),
+        openapi.Parameter('start_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='start_date', required=False),
+        openapi.Parameter('end_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='end_date', required=False)
+    ],operation_summary='Get a todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
         - 이 함수는 today todo list를 불러오는 함수입니다.
@@ -79,10 +87,6 @@ class TodoView(APIView):
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
-
-        형식 : 
-        구현되어야 할 사항
-        - order 및 depth 에 따른 정렬
         '''
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
@@ -125,13 +129,14 @@ class TodoView(APIView):
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(tags=['Todo'], request_body=SwaggerTodoPatchSerializer, operation_summary='Update a todo', responses={200: TodoSerializer})
     def patch(self, request):
         '''
         - 이 함수는 todo를 수정하는 함수입니다.
         - 입력 : todo_id, 수정 내용
-        - 수정 내용은 content, category, start_date, deadline, parent_id 중 하나 이상이어야 합니다.
+        - 수정 내용은 content, category, start_date, end_date 중 하나 이상이어야 합니다.
         - order 의 경우 아래와 같이 제시된다.
-           "order" : {
+            "order" : {
                 "prev_id" : 1,
                 "next_id" : 3,
                 "updated_order" : "0|asdf:"
@@ -140,8 +145,9 @@ class TodoView(APIView):
         todo_id = request.data.get('todo_id')
         update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
+        
         if not update_data:
-            return Response({"error": "At least one of content, category_id, start_date, end_date, or parent_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "At least one of content, category_id, start_date, end_date, is_completed must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
         if request.data.get('start_date') and request.data.get('end_date') and update_data['start_date'] > update_data['end_date']:
@@ -177,7 +183,11 @@ class TodoView(APIView):
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-
+    @swagger_auto_schema(tags=['Todo'], request_body=openapi.Schema(
+    type=openapi.TYPE_OBJECT, 
+    properties={
+        'todo_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='todo_id'),
+    }), operation_summary='Delete a todo', responses={200: TodoSerializer})
     def delete(self, request):
         '''
         - 이 함수는 todo를 삭제하는 함수입니다.
@@ -203,6 +213,7 @@ class TodoView(APIView):
 
 class SubTodoView(APIView):
     permission_classes = [AllowAny]
+    @swagger_auto_schema(tags=['SubTodo'], request_body=SubTodoSerializer, operation_summary='Create a subtodo', responses={201: SubTodoSerializer})
     def post(self, request):
         '''
         - 이 함수는 sub todo를 생성하는 함수입니다.
@@ -226,7 +237,9 @@ class SubTodoView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
-
+    @swagger_auto_schema(tags=['SubTodo'],manual_parameters=[
+        openapi.Parameter('subtodo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='subtodo_id', required=True)
+    ],operation_summary='Get a subtodo', responses={200: SubTodoSerializer})
     def get(self, request):
         '''
         - 이 함수는 sub todo list를 불러오는 함수입니다.
@@ -242,6 +255,7 @@ class SubTodoView(APIView):
         serializer = SubTodoSerializer(sub_todo)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(tags=['SubTodo'], request_body=SwaggerSubTodoPatchSerializer, operation_summary='Update a subtodo', responses={200: SubTodoSerializer})
     def patch(self, request):
         '''
         - 이 함수는 sub todo를 수정하는 함수입니다.
@@ -291,6 +305,9 @@ class SubTodoView(APIView):
         
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(tags=['SubTodo'],manual_parameters=[
+        openapi.Parameter('subtodo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='subtodo_id', required=True)
+    ],operation_summary='Delete a subtodo', responses={200: SubTodoSerializer})
     def delete(self, request):
         '''
         - 이 함수는 sub todo를 삭제하는 함수입니다.
@@ -315,6 +332,7 @@ class SubTodoView(APIView):
     
 class CategoryView(APIView):
     permission_classes = [AllowAny]
+    @swagger_auto_schema(tags=['Category'], request_body=CategorySerializer, operation_summary='Create a category', responses={201: CategorySerializer})
     def post(self, request):
         '''
         - 이 함수는 category를 생성하는 함수입니다.
@@ -337,7 +355,7 @@ class CategoryView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
-
+    @swagger_auto_schema(tags=['Category'], request_body=SwaggerCategoryPatchSerializer, operation_summary='Update a category', responses={200: CategorySerializer})
     def patch(self, request):
         '''
         - 이 함수는 category를 수정하는 함수입니다.
@@ -379,6 +397,10 @@ class CategoryView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @swagger_auto_schema(tags=['Category'],manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='user_id', required=True)
+    ],operation_summary='Get a category', responses={200: CategorySerializer})
     def get(self, request):
         '''
         - 이 함수는 category list를 불러오는 함수입니다.
@@ -396,6 +418,9 @@ class CategoryView(APIView):
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(tags=['Category'],manual_parameters=[
+        openapi.Parameter('category_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='category_id', required=True)
+    ],operation_summary='Delete a category', responses={200: CategorySerializer})
     def delete(self, request):
         '''
         - 이 함수는 category를 삭제하는 함수입니다.
@@ -413,6 +438,11 @@ class CategoryView(APIView):
     
 class TodayTodoView(APIView):
     permission_classes = [AllowAny]
+    @swagger_auto_schema(tags=['TodayTodo'],manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='user_id', required=True),
+        openapi.Parameter('start_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='start_date', required=False),
+        openapi.Parameter('end_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='end_date', required=False)
+    ],operation_summary='Get today todo', responses={200: GetCategoryTodoSerializer})
     def get(self, request):
         '''
         - 이 함수는 today todo list를 불러오는 함수입니다.
