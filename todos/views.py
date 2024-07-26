@@ -157,6 +157,7 @@ class TodoView(APIView):
         - 입력 : todo_id
         - todo_id에 해당하는 todo의 deleted_at 필드를 현재 시간으로 업데이트합니다.
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 todo입니다.
+        - 해당 todo 에 속한 subtodo 도 전부 delete 를 해야함
         '''
         todo_id = request.data.get('todo_id')
 
@@ -164,9 +165,8 @@ class TodoView(APIView):
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if todo.deleted_at is not None:
-            return Response({"error": "Todo already deleted"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        SubTodo.objects.filter(todo_id=todo_id, deleted_at__isnull=True).update(deleted_at=timezone.now())
 
         todo.deleted_at = timezone.now()
         todo.save()
