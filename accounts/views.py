@@ -34,7 +34,7 @@ class GoogleLogin(APIView):
 
     def post(self, request):
         token = request.data.get("token")
-        device_token = request.data.get("deviceToken")
+        device_token = request.data.get("device_token")
         if not device_token or not token:
             raise Exception("device token and token is required")
         try:
@@ -52,7 +52,7 @@ class GoogleLogin(APIView):
                         "access": str(refresh.access_token),
                     }
                 )
-        except ValueError:
+        except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
