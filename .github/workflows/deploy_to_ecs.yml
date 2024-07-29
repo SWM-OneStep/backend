@@ -10,136 +10,159 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Log in to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build Docker image
-      run: |
-        docker build -t ${{ secrets.ECR_REPOSITORY_NAME }}:latest .
-        docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.ECR_REPOSITORY_NAME }}:latest .
+          docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
-    - name: Push Docker image to ECR
-      run: |
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
-    - name: Render ECS task definition
-      run: |
-        echo '{
-    "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-trial:1",
-    "containerDefinitions": [
-        {
-            "name": ${{ secrets.ECS_SERVICE_NAME }},
-            "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}",
-            "cpu": 0,
-            "portMappings": [
-                {
-                    "name": "onestep-prod-80-tcp",
+      - name: Render ECS task definition
+        run: |
+          cat > ecs-task-def.json <<EOL
+          {
+            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:1",
+            "containerDefinitions": [
+              {
+                "name": "onestep-fargate",
+                "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/onestep_private:latest",
+                "cpu": 0,
+                "portMappings": [
+                  {
+                    "name": "onestep-fargate-80-tcp",
                     "containerPort": 80,
-                    "hostPort": 0,
+                    "hostPort": 80,
                     "protocol": "tcp",
                     "appProtocol": "http"
-                },
-                {
-                    "name": "djangowebserver",
+                  },
+                  {
+                    "name": "onestep-fargate-8000-tcp",
                     "containerPort": 8000,
-                    "hostPort": 0,
+                    "hostPort": 8000,
                     "protocol": "tcp",
                     "appProtocol": "http"
-                }
-            ],
-            "essential": true,
-            "environment": [],
-            "environmentFiles": [],
-            "mountPoints": [],
-            "volumesFrom": [],
-            "ulimits": [],
-            "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                    "awslogs-group": "/ecs/onestep-prod-trial",
+                  }
+                ],
+                "essential": true,
+                "environment": [
+                  {
+                    "name": "AWS_REGION_NAME",
+                    "value": "${{ secrets.AWS_REGION }}"
+                  },
+                  {
+                    "name": "AWS_SECRET_NAME",
+                    "value": "${{ secrets.AWS_SECRET_NAME }}"
+                  },
+                  {
+                    "name": "AWS_ACCESS_KEY_ID",
+                    "value": "${{ secrets.AWS_ACCESS_KEY_ID }}"
+                  },
+                  {
+                    "name": "AWS_SECRET_ACCESS_KEY",
+                    "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+                  }
+                ],
+                "environmentFiles": [],
+                "mountPoints": [],
+                "volumesFrom": [],
+                "ulimits": [],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/onestep-prod-fargate2",
                     "awslogs-create-group": "true",
-                    "awslogs-region": "ap-northeast-2",
+                    "awslogs-region": "${{ secrets.AWS_REGION }}",
                     "awslogs-stream-prefix": "ecs"
+                  },
+                  "secretOptions": []
                 },
-                "secretOptions": []
+                "systemControls": []
+              }
+            ],
+            "family": "onestep-prod-fargate2",
+            "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
+            "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
+            "networkMode": "awsvpc",
+            "revision": 1,
+            "volumes": [],
+            "status": "ACTIVE",
+            "requiresAttributes": [
+              {
+                "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+              },
+              {
+                "name": "ecs.capability.execution-role-awslogs"
+              },
+              {
+                "name": "com.amazonaws.ecs.capability.ecr-auth"
+              },
+              {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+              },
+              {
+                "name": "com.amazonaws.ecs.capability.task-iam-role"
+              },
+              {
+                "name": "ecs.capability.execution-role-ecr-pull"
+              },
+              {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+              },
+              {
+                "name": "ecs.capability.task-eni"
+              },
+              {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+              }
+            ],
+            "placementConstraints": [],
+            "compatibilities": [
+              "EC2",
+              "FARGATE"
+            ],
+            "requiresCompatibilities": [
+              "FARGATE"
+            ],
+            "cpu": "1024",
+            "memory": "3072",
+            "runtimePlatform": {
+              "cpuArchitecture": "X86_64",
+              "operatingSystemFamily": "LINUX"
             },
-            "systemControls": []
-        }
-    ],
-    "family": "onestep-prod-trial",
-    "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole-ECS",
-    "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole-ECS",
-    "networkMode": "bridge",
-    "revision": 1,
-    "volumes": [],
-    "status": "ACTIVE",
-    "requiresAttributes": [
-        {
-            "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
-        },
-        {
-            "name": "ecs.capability.execution-role-awslogs"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.ecr-auth"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.task-iam-role"
-        },
-        {
-            "name": "ecs.capability.execution-role-ecr-pull"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
-        }
-    ],
-    "placementConstraints": [],
-    "compatibilities": [
-        "EC2"
-    ],
-    "requiresCompatibilities": [
-        "EC2"
-    ],
-    "cpu": "1024",
-    "memory": "3072",
-    "runtimePlatform": {
-        "cpuArchitecture": "X86_64",
-        "operatingSystemFamily": "LINUX"
-    },
-    "registeredAt": "2024-07-27T08:55:28.275Z",
-    "registeredBy": "arn:aws:iam::637423471998:root",
-    "tags": []
-}' > ecs-task-def.json
+            "registeredAt": "2024-07-28T13:39:51.840Z",
+            "registeredBy": "arn:aws:iam::637423471998:root",
+            "tags": []
+          }
+          EOL
 
-    - name: Register ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ecs-task-def.json
-        container-name: onestep-prod
-        image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+      - name: Register ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ecs-task-def.json
+          container-name: onestep-fargate
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
-    - name: Deploy to ECS service
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ secrets.ECS_SERVICE_NAME }}
-        cluster: ${{ secrets.ECS_CLUSTER_NAME }}
-        wait-for-service-stability: true
+      - name: Deploy to ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE_NAME }}
+          cluster: ${{ secrets.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true
