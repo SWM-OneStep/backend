@@ -57,8 +57,9 @@ class TodoView(APIView):
         '''
         data = request.data
 
-        if data['start_date'] and data['end_date'] and data['start_date'] > data['end_date']:
-            return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
+        if 'start_date' in data and 'end_date' in data:
+            if data['start_date'] > data['end_date']:
+                return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
         
         # validate order
         last_todo = Todo.objects.filter(user_id=data['user_id'], deleted_at__isnull=True).order_by('-order').first()
