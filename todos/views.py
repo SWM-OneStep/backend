@@ -63,7 +63,7 @@ class TodoView(APIView):
 
         if 'start_date' in data and 'end_date' in data:
             if data['start_date'] > data['end_date']:
-                logger.error("start_date must be before end_date for user_id: {}".format(data['user_id']))
+                
                 return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
         
         # validate order
@@ -71,15 +71,12 @@ class TodoView(APIView):
         if last_todo is not None:
             last_order = last_todo.order
             if validate_order(prev=last_order, next=None, updated=data['order']) is False:  
-                    logger.error("Post Todo Invalid order for user_id: {}".format(data['user_id']))
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            logger.info("Todo created successfully for user_id: {}".format(data['user_id']))
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        logger.error("Invalid data: {}".format(serializer.errors))
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(tags=['Todo'],manual_parameters=[

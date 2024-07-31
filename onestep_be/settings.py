@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'todos.logging_middleware.SimpleMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -202,6 +203,10 @@ LOGGING = {
         "todos.views" : {
             "handlers" : ["file"],
             "level" : "DEBUG",
+        },
+        'todos.logging_middleware': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
         },
         "accounts.views" : {
             "handlers" : ["file"],
