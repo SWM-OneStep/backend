@@ -14,6 +14,10 @@ from django.utils import timezone
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def validate_order(prev, next, updated):
     updated_lexo = LexoRank(updated)
     if prev is None and next is None:
@@ -59,6 +63,7 @@ class TodoView(APIView):
 
         if 'start_date' in data and 'end_date' in data:
             if data['start_date'] > data['end_date']:
+                logger.error("start_date must be before end_date for user_id: {}".format(data['user_id']))
                 return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
         
         # validate order
@@ -66,12 +71,15 @@ class TodoView(APIView):
         if last_todo is not None:
             last_order = last_todo.order
             if validate_order(prev=last_order, next=None, updated=data['order']) is False:  
+                    logger.error("Post Todo Invalid order for user_id: {}".format(data['user_id']))
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            logger.info("Todo created successfully for user_id: {}".format(data['user_id']))
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        logger.error("Invalid data: {}".format(serializer.errors))
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(tags=['Todo'],manual_parameters=[
@@ -425,11 +433,9 @@ class CategoryView(APIView):
     
 class InboxView(APIView):
     permission_classes = [AllowAny]
-    @swagger_auto_schema(tags=['TodayTodo'],manual_parameters=[
+    @swagger_auto_schema(tags=['InboxTodo'],manual_parameters=[
         openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='user_id', required=True),
-        openapi.Parameter('start_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='start_date', required=False),
-        openapi.Parameter('end_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='end_date', required=False)
-    ],operation_summary='Get today todo', responses={200: GetTodoSerializer})
+        ],operation_summary='Get Inbox todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
         - 이 함수는 today todo list를 불러오는 함수입니다.

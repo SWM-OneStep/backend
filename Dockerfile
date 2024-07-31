@@ -3,6 +3,7 @@ FROM python:3.12
 
 # 작업 디렉토리 설정
 WORKDIR /app
+RUN mkdir /logs
 
 # 종속성 파일 복사 및 설치
 COPY requirements.txt /app/
