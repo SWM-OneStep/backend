@@ -14,8 +14,7 @@ class SimpleMiddleware:
 
         response = self.get_response(request)
         state_code= getattr(response, 'status_code', None)
-        print("지나가욥", request.user)
-        request = (f"Request : {request.path}, {request.method}, {state_code}, {getattr(response.content, 'user_id', None)}")
+        request = (f"Request : {request.path}, {request.method}, {state_code}, user_id : {getattr(response.content, 'user_id', None)}, id : {getattr(response.content, 'id', None)}")
         if state_code >= 500:
             logger.critical(request)
         elif state_code >= 400:
