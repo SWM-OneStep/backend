@@ -14,7 +14,7 @@ class TimeStamp(models.Model):
 class Todo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    category_id = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='todos')
+    category_id = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='children')
     start_date = models.DateField(null = True)
     end_date = models.DateField(null = True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -28,7 +28,7 @@ class Todo(TimeStamp):
 class SubTodo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    todo = models.ForeignKey('Todo', on_delete=models.CASCADE, related_name='subtodos')
+    todo = models.ForeignKey('Todo', on_delete=models.CASCADE, related_name='children')
     date = models.DateField(null=True)
     order = models.CharField(max_length=255, null=True)
     is_completed = models.BooleanField(default=False)

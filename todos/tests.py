@@ -1,11 +1,8 @@
-from django.test import TestCase
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APITestCase
 from rest_framework import status
 from django.urls import reverse
 from todos.models import Todo
 from accounts.models import User
-from django.utils import timezone
-import json
 
 
 class TodoCreateTestCase(APITestCase):

@@ -13,7 +13,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class SubTodoSerializer(serializers.ModelSerializer):
     content = serializers.CharField(max_length=255)
     todo = serializers.PrimaryKeyRelatedField(queryset=Todo.objects.all(), required=True)
-    date = serializers.DateField()
+    date = serializers.DateField(required=False, allow_null=True)
     order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False)
 
@@ -21,25 +21,12 @@ class SubTodoSerializer(serializers.ModelSerializer):
         model = SubTodo
         fields = "__all__"
 
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = "__all__"
-
 class GetTodoSerializer(serializers.ModelSerializer):
-    subtodos = SubTodoSerializer(many=True, read_only=True) 
-
+    children = SubTodoSerializer(many=True, read_only=True) 
     class Meta:
         model = Todo
-        fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed', 'subtodos']
+        fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed', 'children']
 
-
-class GetCategoryTodoSerializer(serializers.ModelSerializer):
-    todos = GetTodoSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Category
-        fields = ['id', 'color', 'title', 'order', 'todos']
 
 
 class TodoSerializer(serializers.ModelSerializer):
