@@ -427,8 +427,6 @@ class InboxView(APIView):
     permission_classes = [AllowAny]
     @swagger_auto_schema(tags=['TodayTodo'],manual_parameters=[
         openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='user_id', required=True),
-        openapi.Parameter('start_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='start_date', required=False),
-        openapi.Parameter('end_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='end_date', required=False)
     ],operation_summary='Get today todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
@@ -455,3 +453,41 @@ class InboxView(APIView):
 
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class RecommendSubTodo(APIView):
+    permission_classes = [AllowAny]
+    @swagger_auto_schema(tags=['RecommendSubTodo'],manual_parameters=[
+        openapi.Parameter('todo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='todo_id', required=True),
+        openapi.Parameter('recommend_category', openapi.IN_QUERY, type=openapi.TYPE_STRING, description='recommend_category', required=True)
+    ],operation_summary='Recommend subtodo', responses={200: SubTodoSerializer})
+    def get(self, request):
+        '''
+        - 이 함수는 sub todo를 추천하는 함수입니다.
+        - 입력 : todo_id, recommend_category
+        - todo_id에 해당하는 todo_id 의 Contents 를 바탕으로 sub todo를 추천합니다.
+        - 추천할 때의 카테고리 : 공부, 운동, 취미, 일, 약속, 커스텀
+        - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
+        - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
+        '''
+
+        todo_id = request.Get.get('todo_id')
+        recommend_category = request.Get.get('recommend_category')
+
+        try:
+            todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
+        except Todo.DoesNotExist:
+            return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        dictionary = {"공부" : "공부예시", "운동" : "운동예시", "취미" : "취미예시", "일" : "일예시", "약속" : "약속예시"}
+        
+        data = ''
+        if recommend_category not in ['공부', '운동', '취미', '일', '약속', '커스텀']:
+            return Response({"error": "Invalid recommend_category"}, status=status.HTTP_400_BAD_REQUEST)
+        elif recommend_category == '커스텀':
+            return Response({"error": "Custom category is not supported"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            data = dictionary[recommend_category]
+        
+        serializer = SubTodoSerializer(data=data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
