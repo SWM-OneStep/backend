@@ -37,7 +37,7 @@ jobs:
         run: |
           cat > ecs-task-def.json <<EOL
           {
-            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:1",
+            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:2",
             "containerDefinitions": [
               {
                 "name": "onestep-fargate",
