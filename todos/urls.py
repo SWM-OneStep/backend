@@ -8,3 +8,4 @@ urlpatterns = [
     path('category/', CategoryView.as_view(), name='category'),
     path('inbox/', InboxView.as_view(), name='inbox'),
 ]
+
