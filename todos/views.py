@@ -67,7 +67,7 @@ class TodoView(APIView):
             last_order = last_todo.order
             if validate_order(prev=last_order, next=None, updated=data['order']) is False:  
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
-        
+        # category_id validation
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -81,7 +81,7 @@ class TodoView(APIView):
     ],operation_summary='Get a todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
-        - 이 함수는 today todo list를 불러오는 함수입니다.
+        - 이 함수는 daily todo list를 불러오는 함수입니다.
         - 입력 :  user_id(필수), start_date, end_date
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
@@ -94,9 +94,9 @@ class TodoView(APIView):
             return Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         try:   
             if start_date is not None and end_date is not None: # start_date and end_date are not None
-                todos = Todo.objects.get_today_with_date(user_id=user_id, start_date=start_date, end_date=end_date)
+                todos = Todo.objects.get_daily_with_date(user_id=user_id, start_date=start_date, end_date=end_date)
             else: # start_date and end_date are None
-                todos = Todo.objects.get_today(user_id=user_id) 
+                todos = Todo.objects.get_daily(user_id=user_id) 
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = GetTodoSerializer(todos, many=True)
@@ -419,7 +419,7 @@ class InboxView(APIView):
     ],operation_summary='Get Inbox todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
-        - 이 함수는 today todo list를 불러오는 함수입니다.
+        - 이 함수는 daily todo list를 불러오는 함수입니다.
         - 입력 :  user_id(필수)
         - order 의 순서로 정렬합니다.
         '''

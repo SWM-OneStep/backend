@@ -37,20 +37,28 @@ class TodosManager(models.Manager):
         ).prefetch_related(
             Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=True).order_by('order'))
         )
-    def get_today_with_date(self, user_id, start_date, end_date):
+    def get_daily_with_date(self, user_id, start_date, end_date):
         return Todo.objects.filter(
-                user_id = user_id,
-                deleted_at__isnull=True
-            ).filter(
-                Q(Q(end_date__gte=end_date) | Q(end_date__isnull = True)) 
-                & Q(Q(start_date__lte=start_date) | Q(start_date__isnull = True)) 
-                & Q(Q(end_date__isnull = False) | Q(start_date__isnull = False))
-            ).filter(
-                Q(end_date__isnull = False) | Q(start_date__isnull = False)
-            ).order_by('order').prefetch_related(
-                Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
+            user_id=user_id,
+            deleted_at__isnull=True
+        ).filter(
+            (
+                Q(start_date__isnull=True) |
+                Q(start_date__lte=end_date, start_date__gte=start_date)
+            ) | (
+                Q(end_date__isnull=True) |
+                Q(end_date__lte=end_date, end_date__gte=start_date)
+            ) |
+            (
+                Q(start_date__lte=start_date, end_date__gte=end_date)
             )
-    def get_today(self, user_id):
+        ).exclude(
+            start_date__isnull=True,
+            end_date__isnull=True
+        ).order_by('order').prefetch_related(
+            Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
+        )
+    def get_daily(self, user_id):
         return Todo.objects.filter(
                 user_id = user_id, deleted_at__isnull=True
                 ).filter(
