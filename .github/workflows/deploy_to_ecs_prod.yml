@@ -170,7 +170,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: ecs-task-def.json
-          container-name: onestep-fargate
+          container-name: onestep-prod
           image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
 
       - name: Deploy to ECS service
