@@ -133,7 +133,7 @@ class TodoView(APIView):
         update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
         
-        if not update_data:
+        if not update_data and 'order' not in request.data:
             return Response({"error": "At least one of content, category_id, start_date, end_date, is_completed must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
