@@ -96,7 +96,7 @@ class TodoView(APIView):
             if start_date is not None and end_date is not None: # start_date and end_date are not None
                 todos = Todo.objects.get_daily_with_date(user_id=user_id, start_date=start_date, end_date=end_date)
             else: # start_date and end_date are None
-                todos = Todo.objects.get_daily(user_id=user_id) 
+                todos = Todo.objects.get_with_user_id(user_id=user_id) 
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = GetTodoSerializer(todos, many=True)
