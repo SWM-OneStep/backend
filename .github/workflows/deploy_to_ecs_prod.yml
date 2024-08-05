@@ -80,6 +80,10 @@ jobs:
                           {
                               "name": "AWS_SECRET_ACCESS_KEY",
                               "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+                          },
+                          {
+                              "name": "DJANGO_SETTINGS_MODULE",
+                              "value": "onestep_be.settings.prod"
                           }
                       ],
                       "environmentFiles": [],
