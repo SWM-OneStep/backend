@@ -1,9 +1,9 @@
-name: Deploy to ECS
+name: Deploy to ECS Prod
 
 on:
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   build-and-deploy:

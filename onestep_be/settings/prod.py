@@ -4,7 +4,7 @@ from accounts.aws import get_secret
 
 ALLOWED_HOSTS = ["*"]
 DEBUG = False
-SECRETS = eval(get_secret())
+SECRETS = eval(get_secret(prod=True))
 
 DATABASES = {
     "default": {
