@@ -3,11 +3,11 @@ import os
 from dotenv import load_dotenv
 
 
-def get_secret():
+def get_secret(prod=False):
 
     load_dotenv()
 
-    secret_name = os.environ.get("AWS_SECRET_NAME")
+    secret_name = os.environ.get("AWS_SECRET_NAME_PROD") if prod else os.environ.get("AWS_SECRET_NAME")
     region_name = os.environ.get("AWS_REGION_NAME")
 
     # Create a Secrets Manager client
