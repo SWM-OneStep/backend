@@ -113,6 +113,4 @@ class Category(TimeStamp):
 
     objects = TodosManager()
 
-    def __str__(self):
-        return self.content
 
