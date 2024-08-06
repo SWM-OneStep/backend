@@ -116,7 +116,7 @@ class TodoView(APIView):
             }
         '''
         todo_id = request.data.get('todo_id')
-        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed']
+        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed', 'order']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
         
         if not update_data:

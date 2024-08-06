@@ -1,0 +1,182 @@
+name: Deploy to ECS Prod
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest .
+          docker tag ${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
+
+      - name: Render ECS task definition
+        run: |
+          cat > ecs-task-def.json <<EOL
+          {
+              "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-real-production:1",
+              "containerDefinitions": [
+                  {
+                      "name": "onestep-prod",
+                      "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/onestep_prod",
+                      "cpu": 0,
+                      "portMappings": [
+                          {
+                              "name": "onestep-prod-80-tcp",
+                              "containerPort": 80,
+                              "hostPort": 80,
+                              "protocol": "tcp",
+                              "appProtocol": "http"
+                          },
+                          {
+                              "name": "onestep-prod-8000-tcp",
+                              "containerPort": 8000,
+                              "hostPort": 8000,
+                              "protocol": "tcp",
+                              "appProtocol": "http"
+                          }
+                      ],
+                      "essential": true,
+                      "environment": [
+                          {
+                              "name": "AWS_REGION_NAME",
+                              "value": "${{ secrets.AWS_REGION }}"
+                          },
+                          {
+                              "name": "AWS_SECRET_NAME",
+                              "value": "onestep/prod"
+                          },
+                          {
+                              "name": "AWS_ACCESS_KEY_ID",
+                              "value": "${{ secrets.AWS_ACCESS_KEY_ID }}"
+                          },
+                          {
+                              "name": "AWS_SECRET_NAME_PROD",
+                              "value": "onestep/prod"
+                          },
+                          {
+                              "name": "AWS_SECRET_ACCESS_KEY",
+                              "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+                          },
+                          {
+                              "name": "DJANGO_SETTINGS_MODULE",
+                              "value": "onestep_be.settings.prod"
+                          }
+                      ],
+                      "environmentFiles": [],
+                      "mountPoints": [],
+                      "volumesFrom": [],
+                      "ulimits": [],
+                      "logConfiguration": {
+                          "logDriver": "awslogs",
+                          "options": {
+                              "awslogs-group": "/ecs/${{ secrets.ECS_CLUSTER_NAME_PROD }}",
+                              "awslogs-create-group": "true",
+                              "awslogs-region": "${{ secrets.AWS_REGION }}",
+                              "awslogs-stream-prefix": "ecs"
+                          },
+                          "secretOptions": []
+                      },
+                      "systemControls": []
+                  }
+              ],
+              "family": "${{ secrets.ECS_CLUSTER_NAME_PROD }}",
+              "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
+              "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
+              "networkMode": "awsvpc",
+              "revision": 1,
+              "volumes": [],
+              "status": "ACTIVE",
+              "requiresAttributes": [
+                  {
+                      "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+                  },
+                  {
+                      "name": "ecs.capability.execution-role-awslogs"
+                  },
+                  {
+                      "name": "com.amazonaws.ecs.capability.ecr-auth"
+                  },
+                  {
+                      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+                  },
+                  {
+                      "name": "com.amazonaws.ecs.capability.task-iam-role"
+                  },
+                  {
+                      "name": "ecs.capability.execution-role-ecr-pull"
+                  },
+                  {
+                      "name": "ecs.capability.extensible-ephemeral-storage"
+                  },
+                  {
+                      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+                  },
+                  {
+                      "name": "ecs.capability.task-eni"
+                  },
+                  {
+                      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+                  }
+              ],
+              "placementConstraints": [],
+              "compatibilities": [
+                  "EC2",
+                  "FARGATE"
+              ],
+              "requiresCompatibilities": [
+                  "FARGATE"
+              ],
+              "cpu": "1024",
+              "memory": "3072",
+              "ephemeralStorage": {
+                  "sizeInGiB": 100
+              },
+              "runtimePlatform": {
+                  "cpuArchitecture": "X86_64",
+                  "operatingSystemFamily": "LINUX"
+              },
+              "registeredAt": "2024-08-05T11:32:16.678Z",
+              "registeredBy": "arn:aws:iam::637423471998:root",
+              "tags": []
+          }
+          EOL
+
+      - name: Register ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ecs-task-def.json
+          container-name: onestep-prod
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
+
+      - name: Deploy to ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE_NAME_PROD }}
+          cluster: ${{ secrets.ECS_CLUSTER_NAME_PROD }}
+          wait-for-service-stability: true
