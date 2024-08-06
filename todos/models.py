@@ -19,13 +19,11 @@ class TodosManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
     def get_with_id(self, id):
-        return self.get_queryset().get(id=id)
+        return self.get_queryset().filter(id=id).first()
     def get_with_user_id(self, user_id):
-        return self.get_queryset().filter(user_id=user_id)
-    def get_with_date(self, user_id, start_date, end_date):
-        return self.get_queryset().filter(user_id=user_id, start_date__gte=start_date, end_date__lte=end_date)
+        return self.get_queryset().filter(user_id=user_id).order_by('order')
     def get_subtodos(self, todo_id):
-        return self.get_queryset().filter(todo=todo_id)
+        return self.get_queryset().filter(todo=todo_id).order_by('order')
     def get_inbox(self, user_id):
         return Todo.objects.filter(
             user_id=user_id,
@@ -36,7 +34,7 @@ class TodosManager(models.Manager):
             Q(end_date__isnull=True, start_date__isnull=True) |  Q(children_count__gt=0)
         ).prefetch_related(
             Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=True).order_by('order'))
-        )
+        ).order_by('order')
     def get_daily_with_date(self, user_id, start_date, end_date):
         return Todo.objects.filter(
             user_id=user_id,
@@ -114,4 +112,7 @@ class Category(TimeStamp):
     order = models.CharField(max_length=255, null=True)
 
     objects = TodosManager()
+
+    def __str__(self):
+        return self.content
 

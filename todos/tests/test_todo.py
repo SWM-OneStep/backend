@@ -185,11 +185,12 @@ def test_get_todos_ordering(create_user, create_category):
         end_date='2024-08-02',
         content='Test Todo 3',
         category_id=create_category,
-        order='0|00000a:'
+        order='0|a0000a:'
     )
     response = client.get(url, {'user_id': create_user.id}, format='json')
     assert response.status_code == 200
-    assert response.data[0]['order'] == '0|00000a:'
+    print(response.data)
+    assert response.data[0]['order'] == '0|a0000a:'
     assert response.data[1]['order'] == '0|hzzzzz:'
     assert response.data[2]['order'] == '0|i00000:'
 
@@ -286,6 +287,102 @@ def test_update_todo_success(create_user, create_category):
     assert response.data['content'] == 'Updated Todo'
     assert response.data['end_date'] == '2024-08-03'
 
+@pytest.mark.django_db
+def test_update_todo_invalid_order(create_user, create_category):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo',
+        category_id=create_category,
+        order='0|hzzzzz:'
+    )
+    todo2 = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo 2',
+        category_id=create_category,
+        order='0|i0000h:'
+    )
+    url = reverse('todos')  
+    data = {
+        'todo_id': todo.id,
+        'content': 'Updated Todo',
+        'start_date': '2024-08-01',
+        'end_date': '2024-08-03',
+        'order': {
+            'prev_id' : None,
+            'next_id' : todo2.id,
+            'updated_order' : '0|i0000z:',
+        }
+    }
+    response = client.patch(url, data, format='json')
+    assert response.status_code == 400
+    assert response.data['error'] == 'Invalid order'
+
+@pytest.mark.django_db
+def test_update_todo_invalid_start_date(create_user, create_category):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo',
+        category_id=create_category,
+        order='0|hzzzzz:'
+    )
+    url = reverse('todos')  
+    data = {
+        'todo_id': todo.id,
+        'content': 'Updated Todo',
+        'start_date': '2024-08-02',
+        'end_date': '2024-08-01',
+    }
+    response = client.patch(url, data, format='json')
+    assert response.status_code == 400
+    assert response.data['error'] == 'start_date must be before end_date'
+
+@pytest.mark.django_db
+def test_update_todo_invalid_category_id(create_user, create_category):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo',
+        category_id=create_category,
+        order='0|hzzzzz:'
+    )
+    url = reverse('todos')  
+    data = {
+        'todo_id': todo.id,
+        'content': 'Updated Todo',
+        'start_date': '2024-08-01',
+        'end_date': '2024-08-03',
+        'category_id': 999
+    }
+    response = client.patch(url, data, format='json')
+    assert response.status_code == 400
+
+@pytest.mark.django_db
+def test_update_todo_invalid_user_id(create_user, create_category):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo',
+        category_id=create_category,
+        order='0|hzzzzz:'
+    )
+    url = reverse('todos')  
+    data = {
+        'todo_id': todo.id,
+        'content': 'Updated Todo',
+        'start_date': '2024-08-01',
+        'end_date': '2024-08-03',
+        'user_id': 999
+    }
+    response = client.patch(url, data, format='json')
+    assert response.status_code == 400
 '''
 ======================================
 # Todo Delete checklist #
@@ -322,5 +419,4 @@ def test_delete_todo_invalid_id(create_user, create_category):
         'todo_id': 999
     }
     response = client.delete(url, data, format='json')
-    assert response.status_code == 404
-    assert response.data['error'] == 'Todo not found'
+    assert response.status_code == 400

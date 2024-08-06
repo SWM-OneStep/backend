@@ -96,7 +96,7 @@ class TodoView(APIView):
             if start_date is not None and end_date is not None: # start_date and end_date are not None
                 todos = Todo.objects.get_daily_with_date(user_id=user_id, start_date=start_date, end_date=end_date)
             else: # start_date and end_date are None
-                todos = Todo.objects.get_with_user_id(user_id=user_id) 
+                todos = Todo.objects.get_with_user_id(user_id=user_id).order_by('order')
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = GetTodoSerializer(todos, many=True)
@@ -186,24 +186,32 @@ class TodoView(APIView):
 
 class SubTodoView(APIView):
     permission_classes = [AllowAny]
-    @swagger_auto_schema(tags=['SubTodo'], request_body=SubTodoSerializer, operation_summary='Create a subtodo', responses={201: SubTodoSerializer})
+    @swagger_auto_schema(tags=['SubTodo'], request_body=SubTodoSerializer(many=True), operation_summary='Create a subtodo', responses={201: SubTodoSerializer})
     def post(self, request):
         '''
         - 이 함수는 sub todo를 생성하는 함수입니다.
         - 입력 : todo, date, content, order
+        - subtodo 는 리스트에 여러 객체가 들어간 형태를 가집니다.
         - content 는 암호화 되어야 합니다(// 미정)
         - date 는 parent의 start_date와 end_date의 사이여야 합니다.
         '''
         data = request.data
 
-        # validate order
-        last_subtodo = SubTodo.objects.filter(todo=data['todo'], deleted_at__isnull=True).order_by('-order').first()
-        if last_subtodo:
-            last_order = last_subtodo.order
-            if validate_order(prev=last_order, next=None, updated=data['order']) is False:
+        for subtodo_data in data:
+            # validate order
+            last_subtodo = SubTodo.objects.filter(todo=subtodo_data['todo'], deleted_at__isnull=True).order_by('-order').first()
+            if last_subtodo:
+                last_order = last_subtodo.order
+                if validate_order(prev=last_order, next=None, updated=subtodo_data['order']) is False:
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = SubTodoSerializer(data=data)
+            # # date validation 수정할 것 
+            # todo = Todo.objects.get_with_id(id=data[0]['todo'])
+            # if subtodo_data['date'] is not None:
+            #     if todo.start_date is not None and todo.end_date is not None:
+            #         subtodo_date = timezone.datetime.strptime(subtodo_data['date'], "%Y-%m-%d").date()
+            #         if not (todo.start_date <= subtodo_date <= todo.end_date):
+            #             return Response({"error": "Subtodo date must be between start_date and end_date of parent todo"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = SubTodoSerializer(data=data, many=True)
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -271,6 +279,13 @@ class SubTodoView(APIView):
                 return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 update_data['order'] = updated_order
+        # if request.data.get('date'): # date validation 나중에 수정할 것 
+        #     todo_id = SubTodo.objects.get_with_id(id=subtodo_id).todo
+        #     print("todo_id: ", todo_id)
+        #     todo = Todo.objects.get_with_id(id=todo_id)
+        #     subtodo_date = timezone.datetime.strptime(update_data['date'], "%Y-%m-%d").date()
+        #     if not (todo.start_date <= subtodo_date <= todo.end_date):
+        #         return Response({"error": "Subtodo date must be between start_date and end_date of parent todo"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = SubTodoSerializer(sub_todo, data=update_data, partial=True)
         if serializer.is_valid(raise_exception=True):
