@@ -14,10 +14,6 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from onestep_be.settings.base import client
 import json
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 def validate_order(prev, next, updated):
     updated_lexo = LexoRank(updated)
     if prev is None and next is None:
@@ -64,7 +60,6 @@ class TodoView(APIView):
 
         if 'start_date' in data and 'end_date' in data:
             if data['start_date'] > data['end_date']:
-                
                 return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
         
         # validate order
@@ -458,6 +453,7 @@ class InboxView(APIView):
     
 class RecommendSubTodo(APIView):
     permission_classes = [AllowAny]
+    
     @swagger_auto_schema(tags=['RecommendSubTodo'],manual_parameters=[
         openapi.Parameter('todo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='todo_id', required=True),
     ],operation_summary='Recommend subtodo', responses={200: SubTodoSerializer})

@@ -58,7 +58,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'todos.logging_middleware.SimpleMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -188,46 +187,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# logging settings
-LOGGING = {
-    'version' : 1,
-    "disable_existing_loggers": False,
-    "handlers" : {
-        "file" : {
-            "class" : "logging.FileHandler",
-            "filename" : BASE_DIR / "logs/general.log",
-            "formatter" : "verbose",
-        },
-    },
-    "loggers" : {
-        "file" : {
-            "handlers" : ["file"],
-            "level" : "DEBUG",
-        },
-        "todos.views" : {
-            "handlers" : ["file"],
-            "level" : "DEBUG",
-        },
-        'todos.logging_middleware': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
-        },
-        "accounts.views" : {
-            "handlers" : ["file"],
-            "level" : "DEBUG",
-        },
-    },
-    "formatters" : {
-        "verbose" : {
-            "format" : "{name} {levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style" : "{",
-        },
-        "simple" : {
-            "format" : "{levelname} {message}",
-            "style" : "{",
-        },
-    },
-}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
