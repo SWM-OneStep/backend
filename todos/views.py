@@ -478,7 +478,7 @@ class RecommendSubTodo(APIView):
                     이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
                     Output a JSON object structured like:
                     {id, content, start_date, end_date, category_id, order, is_completed, children : [
-                    {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id), order(null), is_completed(false)}]}
+                    {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id)}]}
                     [조건] 
                     - date 는 부모의 start_date를 따를 것
                     - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
