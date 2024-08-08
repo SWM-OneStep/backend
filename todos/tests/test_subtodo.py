@@ -86,20 +86,6 @@ def test_create_subtodo_invalid_order(create_todo):
     assert response.data['error'] == 'Invalid order'
 
 
-# @pytest.mark.django_db
-# def test_create_subtodo_invalid_date(create_todo):
-#     url = reverse('subtodos')
-#     data = [{
-#         'content': 'Test SubTodo',
-#         'date': '2024-12-04',
-#         'todo': create_todo.id,
-#         'order': '0|hzzzzz:',
-#         'is_completed': False
-#     }]
-#     response = client.post(url, data, format='json')
-#     assert response.status_code == 400
-#     assert response.data['error'] == 'Subtodo date must be between start_date and end_date of parent todo'
-
 @pytest.mark.django_db
 def test_create_subtodo_invalid_todo_id():
     url = reverse('subtodos')
@@ -266,24 +252,6 @@ def test_update_subtodo_invalid_order(create_todo):
     assert response.data['error'] == 'Invalid order'
 
 
-# @pytest.mark.django_db
-# def test_update_subtodo_invalid_date(create_todo):
-#     subtodo = SubTodo.objects.create(
-#         content='Test SubTodo',
-#         date='2024-08-01',
-#         todo=create_todo,
-#         order='0|hzzzzz:',
-#         is_completed=False
-#     )
-#     url = reverse('subtodos')
-#     data = {
-#         'subtodo_id': subtodo.id,
-#         'content': 'Updated SubTodo',
-#         'date': '2026-01-01',
-#     }
-#     response = client.patch(url, data, format='json')
-#     assert response.status_code == 400
-#     assert response.data['error'] == 'Subtodo date must be between start_date and end_date of parent todo'
 
 
 @pytest.mark.django_db
