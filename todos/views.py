@@ -468,6 +468,7 @@ class RecommendSubTodo(APIView):
                     [조건] 
                     - date 는 부모의 start_date를 따를 것
                     - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
+                    - 언어는 주어진 todo content의 언어에 따를 것
                     """},
                     {"role": "user", "content": f"id: {todo.id}, content: {todo.content}, start_date: {todo.start_date}, end_date: {todo.end_date}, category_id: {todo.category_id}, order: {todo.order}, is_completed: {todo.is_completed}"}
                 ],
