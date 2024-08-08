@@ -1,6 +1,6 @@
 ## What is this PR? 🔎
 
-- **Jira Ticket**:
+- **Jira Ticket**:[지라이름](링크)
 - **기타 관련 문서** :
 
   <br/>
