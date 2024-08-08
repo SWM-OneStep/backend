@@ -117,10 +117,10 @@ class TodoView(APIView):
             }
         '''
         todo_id = request.data.get('todo_id')
-        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed', 'order']
+        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
         
-        if not update_data:
+        if not update_data and request.data.get('order') is None:
             return Response({"error": "At least one of content, category_id, start_date, end_date, is_completed must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
@@ -255,7 +255,7 @@ class SubTodoView(APIView):
         update_fields = ['content', 'date', 'is_completed', 'todo']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
         
-        if not update_data:
+        if not update_data and request.data.get('order') is None:
             return Response({"error": "At least one of content, date, or parent_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
