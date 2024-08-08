@@ -4,15 +4,15 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.db.models import Prefetch, Q, Count
 from todos.lexorank import LexoRank
 
 from todos.models import Todo, SubTodo, Category
 from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializer, CategorySerializer
 from todos.swagger_serializers import SwaggerTodoPatchSerializer, SwaggerSubTodoPatchSerializer, SwaggerCategoryPatchSerializer
-from django.utils import timezone
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from onestep_be.settings.base import client
+import json
 
 def validate_order(prev, next, updated):
     updated_lexo = LexoRank(updated)
@@ -32,6 +32,7 @@ def validate_order(prev, next, updated):
         if prev_lexo.compare_to(updated_lexo) >= 0 or next_lexo.compare_to(updated_lexo) <= 0:
             return False
     return True
+
 
 class TodoView(APIView):
     permission_classes = [AllowAny]
@@ -448,3 +449,49 @@ class InboxView(APIView):
             return Response({"error": "Inbox is Empty"}, status=status.HTTP_404_NOT_FOUND)
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class RecommendSubTodo(APIView):
+    permission_classes = [AllowAny]
+    @swagger_auto_schema(tags=['RecommendSubTodo'],manual_parameters=[
+        openapi.Parameter('todo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='todo_id', required=True),
+    ],operation_summary='Recommend subtodo', responses={200: SubTodoSerializer})
+    def get(self, request):
+        '''
+        - 이 함수는 sub todo를 추천하는 함수입니다.
+        - 입력 : todo_id, recommend_category
+        - todo_id에 해당하는 todo_id 의 Contents 를 바탕으로 sub todo를 추천합니다.
+        - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
+        - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
+        '''
+        
+        todo_id = request.GET.get('todo_id')
+        try:
+            todo = Todo.objects.get_with_id(id=todo_id)
+            completion = client.chat.completions.create(
+                model = "gpt-4o-mini",
+                messages = [
+                    {"role": "system", 
+                    "content": """너는 퍼스널 매니저야.
+                    너가 하는 일은 이 사람이 할 이야기를 듣고 약 1시간 정도면 끝낼 수 있도록 작업을 나눠주는 식으로 진행할 거야.
+                    아래는 너가 나눠줄 작업 형식이야.
+                    { id : 1, content: "3학년 2학기 운영체제 중간고사 준비", start_date="2024-09-01", end_date="2024-09-24"}
+                    이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
+                    Output a JSON object structured like:
+                    {id, content, start_date, end_date, category_id, order, is_completed, children : [
+                    {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id), order(null), is_completed(false)}]}
+                    [조건] 
+                    - date 는 부모의 start_date를 따를 것
+                    - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
+                    """},
+                    {"role": "user", "content": f"id: {todo.id}, content: {todo.content}, start_date: {todo.start_date}, end_date: {todo.end_date}, category_id: {todo.category_id}, order: {todo.order}, is_completed: {todo.is_completed}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+
+        except Todo.DoesNotExist:
+            return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(json.loads(completion.choices[0].message.content), status=status.HTTP_200_OK)
+        
