@@ -41,11 +41,11 @@ jobs:
         run: |
           cat > ecs-task-def.json <<EOL
           {
-            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:latest",
+            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:20",
             "containerDefinitions": [
               {
                 "name": "onestep-fargate",
-                "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/onestep_private:latest",
+                "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/onestep_private:${{ github.sha }}",
                 "cpu": 0,
                 "portMappings": [
                   {
