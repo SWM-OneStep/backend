@@ -4,15 +4,15 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.db.models import Prefetch, Q, Count
 from todos.lexorank import LexoRank
 
 from todos.models import Todo, SubTodo, Category
 from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializer, CategorySerializer
 from todos.swagger_serializers import SwaggerTodoPatchSerializer, SwaggerSubTodoPatchSerializer, SwaggerCategoryPatchSerializer
-from django.utils import timezone
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from onestep_be.settings.base import client
+import json
 
 def validate_order(prev, next, updated):
     updated_lexo = LexoRank(updated)
@@ -32,6 +32,7 @@ def validate_order(prev, next, updated):
         if prev_lexo.compare_to(updated_lexo) >= 0 or next_lexo.compare_to(updated_lexo) <= 0:
             return False
     return True
+
 
 class TodoView(APIView):
     permission_classes = [AllowAny]
@@ -67,7 +68,7 @@ class TodoView(APIView):
             last_order = last_todo.order
             if validate_order(prev=last_order, next=None, updated=data['order']) is False:  
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
-        
+        # category_id validation
         serializer = TodoSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -81,7 +82,7 @@ class TodoView(APIView):
     ],operation_summary='Get a todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
-        - 이 함수는 today todo list를 불러오는 함수입니다.
+        - 이 함수는 daily todo list를 불러오는 함수입니다.
         - 입력 :  user_id(필수), start_date, end_date
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
@@ -92,27 +93,13 @@ class TodoView(APIView):
         user_id = request.GET.get('user_id')
         if user_id is None:
             return Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        if start_date is not None and end_date is not None: # start_date and end_date are not None
-            todos = Todo.objects.filter(
-                user_id = user_id,
-                end_date__lte=end_date,
-                start_date__gte=start_date,
-                deleted_at__isnull=True
-            ).filter(
-                Q(end_date__isnull = False) | Q(start_date__isnull = False)
-            ).order_by('order').prefetch_related(
-                Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
-            )
-        else: # start_date and end_date are None
-            todos = Todo.objects.filter(
-                user_id = user_id, deleted_at__isnull=True
-                ).filter(
-                    Q(end_date__isnull = False) | Q(start_date__isnull = False)
-                ).order_by('order').prefetch_related(
-                Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
-            )
-
+        try:   
+            if start_date is not None and end_date is not None: # start_date and end_date are not None
+                todos = Todo.objects.get_daily_with_date(user_id=user_id, start_date=start_date, end_date=end_date)
+            else: # start_date and end_date are None
+                todos = Todo.objects.get_with_user_id(user_id=user_id).order_by('order')
+        except Todo.DoesNotExist:
+            return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -130,10 +117,10 @@ class TodoView(APIView):
             }
         '''
         todo_id = request.data.get('todo_id')
-        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed', 'order']
+        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
         
-        if not update_data:
+        if not update_data and request.data.get('order') is None:
             return Response({"error": "At least one of content, category_id, start_date, end_date, is_completed must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
@@ -186,38 +173,39 @@ class TodoView(APIView):
         todo_id = request.data.get('todo_id')
 
         try:
-            todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
+            todo = Todo.objects.get_with_id(id=todo_id)
+            subtodos = SubTodo.objects.get_subtodos(todo.id)
+            SubTodo.objects.delete_many(subtodos)
+            Todo.objects.delete_instance(todo)
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e: 
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        SubTodo.objects.filter(todo_id=todo_id, deleted_at__isnull=True).update(deleted_at=timezone.now())
-
-        todo.deleted_at = timezone.now()
-        todo.save()
-
         return Response({"todo_id": todo.id, "message": "Todo deleted successfully"}, status=status.HTTP_200_OK)
     
 
 class SubTodoView(APIView):
     permission_classes = [AllowAny]
-    @swagger_auto_schema(tags=['SubTodo'], request_body=SubTodoSerializer, operation_summary='Create a subtodo', responses={201: SubTodoSerializer})
+    @swagger_auto_schema(tags=['SubTodo'], request_body=SubTodoSerializer(many=True), operation_summary='Create a subtodo', responses={201: SubTodoSerializer})
     def post(self, request):
         '''
         - 이 함수는 sub todo를 생성하는 함수입니다.
         - 입력 : todo, date, content, order
+        - subtodo 는 리스트에 여러 객체가 들어간 형태를 가집니다.
         - content 는 암호화 되어야 합니다(// 미정)
         - date 는 parent의 start_date와 end_date의 사이여야 합니다.
         '''
         data = request.data
 
-        # validate order
-        last_subtodo = SubTodo.objects.filter(todo=data['todo'], deleted_at__isnull=True).order_by('-order').first()
-        if last_subtodo:
-            last_order = last_subtodo.order
-            if validate_order(prev=last_order, next=None, updated=data['order']) is False:
+        for subtodo_data in data:
+            # validate order
+            last_subtodo = SubTodo.objects.filter(todo=subtodo_data['todo'], deleted_at__isnull=True).order_by('-order').first()
+            if last_subtodo:
+                last_order = last_subtodo.order
+                if validate_order(prev=last_order, next=None, updated=subtodo_data['order']) is False:
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = SubTodoSerializer(data=data)
+        serializer = SubTodoSerializer(data=data, many=True)
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -225,22 +213,23 @@ class SubTodoView(APIView):
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(tags=['SubTodo'],manual_parameters=[
-        openapi.Parameter('subtodo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='subtodo_id', required=True)
+        openapi.Parameter('todo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='todo_id', required=True)
     ],operation_summary='Get a subtodo', responses={200: SubTodoSerializer})
     def get(self, request):
         '''
         - 이 함수는 sub todo list를 불러오는 함수입니다.
-        - 입력 : subtodo_id
+        - 입력 : todo_id
         - parent_id에 해당하는 sub todo list를 불러옵니다.
         '''
-        subtodo_id = request.GET.get('subtodo_id')
+        todo_id = request.GET.get('todo_id')
         try:
-            sub_todo = SubTodo.objects.get(id=subtodo_id, deleted_at__isnull=True)
+            sub_todos = SubTodo.objects.get_subtodos(todo_id= todo_id)
         except SubTodo.DoesNotExist:
             return Response({"error": "SubTodo not found"}, status=status.HTTP_404_NOT_FOUND)
     
-        serializer = SubTodoSerializer(sub_todo)
+        serializer = SubTodoSerializer(sub_todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
 
     @swagger_auto_schema(tags=['SubTodo'], request_body=SwaggerSubTodoPatchSerializer, operation_summary='Update a subtodo', responses={200: SubTodoSerializer})
     def patch(self, request):
@@ -259,7 +248,7 @@ class SubTodoView(APIView):
         update_fields = ['content', 'date', 'is_completed', 'todo']
         update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
         
-        if not update_data:
+        if not update_data and request.data.get('order') is None:
             return Response({"error": "At least one of content, date, or parent_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
         if 'user_id' in request.data:
             return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
@@ -292,9 +281,11 @@ class SubTodoView(APIView):
         
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(tags=['SubTodo'],manual_parameters=[
-        openapi.Parameter('subtodo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='subtodo_id', required=True)
-    ],operation_summary='Delete a subtodo', responses={200: SubTodoSerializer})
+    @swagger_auto_schema(tags=['SubTodo'],request_body=openapi.Schema(
+    type=openapi.TYPE_OBJECT, 
+    properties={
+        'subtodo_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='subtodo_id'),
+    }),operation_summary='Delete a subtodo', responses={200: SubTodoSerializer})
     def delete(self, request):
         '''
         - 이 함수는 sub todo를 삭제하는 함수입니다.
@@ -303,17 +294,14 @@ class SubTodoView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 sub todo입니다.
         '''
         subtodo_id = request.data.get('subtodo_id')
-
+        print(subtodo_id)
         try:
-            sub_todo = SubTodo.objects.get(id=subtodo_id, deleted_at__isnull=True)
+            sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
+            SubTodo.objects.delete_instance(sub_todo)
         except SubTodo.DoesNotExist:
             return Response({"error": "SubTodo not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if sub_todo.deleted_at is True:
-            return Response({"error": "SubTodo already deleted"}, status=status.HTTP_400_BAD_REQUEST)
-
-        sub_todo.deleted_at = timezone.now()
-        sub_todo.save()
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"subtodo_id": sub_todo.id, "message": "SubTodo deleted successfully"}, status=status.HTTP_200_OK)
     
@@ -397,17 +385,18 @@ class CategoryView(APIView):
         user_id = request.GET.get('user_id')
         if user_id is None:
             return  Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        categories = Category.objects.filter(
-            user_id=user_id,
-            deleted_at__isnull=True
-        )
+        try:
+            categories = Category.objects.get_with_user_id(user_id=user_id)
+        except Category.DoesNotExist:
+            return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    @swagger_auto_schema(tags=['Category'],manual_parameters=[
-        openapi.Parameter('category_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='category_id', required=True)
-    ],operation_summary='Delete a category', responses={200: CategorySerializer})
+    @swagger_auto_schema(tags=['Category'], request_body=openapi.Schema(
+    type=openapi.TYPE_OBJECT, 
+    properties={
+        'category_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Category_id'),
+    }),operation_summary='Delete a category', responses={200: CategorySerializer})
     def delete(self, request):
         '''
         - 이 함수는 category를 삭제하는 함수입니다.
@@ -416,23 +405,23 @@ class CategoryView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 category입니다.
         '''
         category_id = request.data.get('category_id')
-        category = Category.objects.get(id=category_id, deleted_at__isnull=True)
-        if category.deleted_at is not None:
-            return Response({"error": "Category already deleted"}, status=status.HTTP_400_BAD_REQUEST)
-        category.deleted_at = timezone.now()
-        category.save()
-        return Response({"category_id": category.id, "message": "Category deleted successfully"}, status=status.HTTP_200_OK)
+        try:
+            category = Category.objects.get_with_id(id=category_id)
+            Category.objects.delete_instance(category)
+            return Response({"category_id": category.id, "message": "Category deleted successfully"}, status=status.HTTP_200_OK)
+        except Category.DoesNotExist:
+            return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 class InboxView(APIView):
     permission_classes = [AllowAny]
-    @swagger_auto_schema(tags=['TodayTodo'],manual_parameters=[
+    @swagger_auto_schema(tags=['InboxTodo'],manual_parameters=[
         openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='user_id', required=True),
-        openapi.Parameter('start_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='start_date', required=False),
-        openapi.Parameter('end_date', openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='end_date', required=False)
-    ],operation_summary='Get today todo', responses={200: GetTodoSerializer})
+    ],operation_summary='Get Inbox todo', responses={200: GetTodoSerializer})
     def get(self, request):
         '''
-        - 이 함수는 today todo list를 불러오는 함수입니다.
+        - 이 함수는 daily todo list를 불러오는 함수입니다.
         - 입력 :  user_id(필수)
         - order 의 순서로 정렬합니다.
         '''
@@ -440,18 +429,56 @@ class InboxView(APIView):
 
         if user_id is None:
             return Response({"error": "user_id must be provided"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        
-        todos = Todo.objects.filter(
-            user_id=user_id,
-            deleted_at__isnull=True
-        ).annotate(
-            children_count=Count('children', filter=Q(children__deleted_at__isnull=True, children__date__isnull=True))
-        ).filter(
-            Q(end_date__isnull=True, start_date__isnull=True) |  Q(children_count__gt=0)
-        ).prefetch_related(
-            Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=True).order_by('order'))
-        )
-
+        try:
+            todos = Todo.objects.get_inbox(user_id=user_id)
+        except Todo.DoesNotExist:
+            return Response({"error": "Inbox is Empty"}, status=status.HTTP_404_NOT_FOUND)
         serializer = GetTodoSerializer(todos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class RecommendSubTodo(APIView):
+    permission_classes = [AllowAny]
+    @swagger_auto_schema(tags=['RecommendSubTodo'],manual_parameters=[
+        openapi.Parameter('todo_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description='todo_id', required=True),
+    ],operation_summary='Recommend subtodo', responses={200: SubTodoSerializer})
+    def get(self, request):
+        '''
+        - 이 함수는 sub todo를 추천하는 함수입니다.
+        - 입력 : todo_id, recommend_category
+        - todo_id에 해당하는 todo_id 의 Contents 를 바탕으로 sub todo를 추천합니다.
+        - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
+        - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
+        '''
+        
+        todo_id = request.GET.get('todo_id')
+        try:
+            todo = Todo.objects.get_with_id(id=todo_id)
+            completion = client.chat.completions.create(
+                model = "gpt-4o-mini",
+                messages = [
+                    {"role": "system", 
+                    "content": """너는 퍼스널 매니저야.
+                    너가 하는 일은 이 사람이 할 이야기를 듣고 약 1시간 정도면 끝낼 수 있도록 작업을 나눠주는 식으로 진행할 거야.
+                    아래는 너가 나눠줄 작업 형식이야.
+                    { id : 1, content: "3학년 2학기 운영체제 중간고사 준비", start_date="2024-09-01", end_date="2024-09-24"}
+                    이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
+                    Output a JSON object structured like:
+                    {id, content, start_date, end_date, category_id, order, is_completed, children : [
+                    {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id)}]}
+                    [조건] 
+                    - date 는 부모의 start_date를 따를 것
+                    - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
+                    - 언어는 주어진 todo content의 언어에 따를 것
+                    """},
+                    {"role": "user", "content": f"id: {todo.id}, content: {todo.content}, start_date: {todo.start_date}, end_date: {todo.end_date}, category_id: {todo.category_id}, order: {todo.order}, is_completed: {todo.is_completed}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+
+        except Todo.DoesNotExist:
+            return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(json.loads(completion.choices[0].message.content), status=status.HTTP_200_OK)
+        
