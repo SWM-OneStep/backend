@@ -26,7 +26,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build --no-cache -t ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}.
+          docker build --no-cache -t ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} .
           docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}
 
       - name: Push Docker image to ECR
