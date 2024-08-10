@@ -26,12 +26,14 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build --no-cache -t ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} .
+          docker build -t ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} .
           docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}
+          docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
       - name: Push Docker image to ECR
         run: |
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
       - name: Render ECS task definition
         run: |
@@ -99,7 +101,7 @@ jobs:
             "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
             "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
             "networkMode": "awsvpc",
-            "revision": 1,
+            "revision": 23,
             "volumes": [],
             "status": "ACTIVE",
             "requiresAttributes": [
