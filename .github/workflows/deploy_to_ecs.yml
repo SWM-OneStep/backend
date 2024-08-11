@@ -40,7 +40,7 @@ jobs:
             "containerDefinitions": [
               {
                 "name": "onestep-fargate",
-                "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/onestep_private:${{ github.sha }}",
+                "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}"
                 "cpu": 0,
                 "portMappings": [
                   {
@@ -161,7 +161,7 @@ jobs:
       - name: Deploy to ECS service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          task-definition: ecs-task-def.json
           service: ${{ secrets.ECS_SERVICE_NAME }}
           cluster: ${{ secrets.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true
