@@ -36,7 +36,6 @@ jobs:
         run: |
           cat > ecs-task-def.json <<EOL
           {
-            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:24",
             "containerDefinitions": [
               {
                 "name": "onestep-fargate",
@@ -98,7 +97,6 @@ jobs:
             "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
             "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
             "networkMode": "awsvpc",
-            "revision": 24,
             "volumes": [],
             "status": "ACTIVE",
             "requiresAttributes": [
@@ -144,7 +142,6 @@ jobs:
               "cpuArchitecture": "X86_64",
               "operatingSystemFamily": "LINUX"
             },
-            "registeredAt": "2024-07-28T13:39:51.840Z",
             "registeredBy": "arn:aws:iam::637423471998:root",
             "tags": []
           }
@@ -159,9 +156,9 @@ jobs:
           image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}
 
       - name: Deploy to ECS service
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: ecs-task-def.json
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ secrets.ECS_SERVICE_NAME }}
           cluster: ${{ secrets.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true
