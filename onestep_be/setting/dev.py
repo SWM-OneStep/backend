@@ -1,4 +1,4 @@
-from onestep_be.settings.base import *
+from onestep_be.settings import *
 
 
 SECRETS = eval(get_secret())
