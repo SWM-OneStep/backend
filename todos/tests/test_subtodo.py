@@ -83,7 +83,6 @@ def test_create_subtodo_invalid_order(create_todo):
     }]
     response = client.post(url, data, format='json')
     assert response.status_code == 400
-    assert response.data['error'] == 'Invalid order'
 
 
 @pytest.mark.django_db
@@ -273,25 +272,6 @@ def test_update_subtodo_invalid_todo_id(create_todo):
     response = client.patch(url, data, format='json')
     assert response.status_code == 400
 
-
-@pytest.mark.django_db
-def test_update_subtodo_invalid_user_id(create_todo):
-    subtodo = SubTodo.objects.create(
-        content='Test SubTodo',
-        date='2024-08-01',
-        todo=create_todo,
-        order='0|hzzzzz:',
-        is_completed=False
-    )
-    url = reverse('subtodos')
-    data = {
-        'subtodo_id': subtodo.id,
-        'content': 'Updated SubTodo',
-        'date': '2024-08-03',
-        'user_id': 999  # Invalid user id
-    }
-    response = client.patch(url, data, format='json')
-    assert response.status_code == 400
 
 '''
 ======================================

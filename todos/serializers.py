@@ -28,7 +28,7 @@ class CategorySerializer(serializers.ModelSerializer):
         if request.method == 'PATCH':
             if not any(data.get(field) for field in ['color', 'title', 'order']):
                 raise serializers.ValidationError("At least one of color, title, order must be provided")
-            return data
+        
         elif request.method == 'POST':
             user_id = data.get('user_id')
             last_category = Category.objects.filter(user_id=user_id, deleted_at__isnull=True).order_by('-order').first()
@@ -37,7 +37,6 @@ class CategorySerializer(serializers.ModelSerializer):
                 if validate_lexo_order(prev=last_order, next=None, updated=data['order']) is False:  
                         raise serializers.ValidationError("Order is invalid")
         return data
-    
     class Meta:
         model = Category
         fields = "__all__"
@@ -49,6 +48,29 @@ class SubTodoSerializer(serializers.ModelSerializer):
     order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False)
 
+    def validate_todo(self, data):
+        try:
+            Todo.objects.get(id=data.id)
+        except Todo.DoesNotExist:
+            raise serializers.ValidationError("Todo does not exist")
+        return data
+
+    def validate(self, data):
+        request = self.context['request']
+        if request.method == 'PATCH':
+            if not any(data.get(field) for field in ['content', 'date', 'is_completed', 'order']):
+                raise serializers.ValidationError("At least one of content, date, is_completed, order must be provided")
+            return data
+        
+        elif request.method == 'POST':
+            todo_id = data.get('todo').id
+            last_subtodo = SubTodo.objects.filter(todo_id=todo_id, deleted_at__isnull=True).order_by('-order').first()
+            if last_subtodo is not None:
+                last_order = last_subtodo.order
+                if validate_lexo_order(prev=last_order, next=None, updated=data['order']) is False:  
+                        raise serializers.ValidationError("Order is invalid")
+        return data
+    
     class Meta:
         model = SubTodo
         fields = "__all__"
