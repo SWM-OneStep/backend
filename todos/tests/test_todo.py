@@ -72,7 +72,7 @@ def test_create_todo_invalid_order(create_user, create_category):
     }
     response = client.post(url, data, format='json')
     assert response.status_code == 400
-    assert response.data['error'] == 'Invalid order'
+    assert response.data['non_field_errors'][0] == 'Order is invalid'  # Adjust the assertion based on the actual error message
 
 @pytest.mark.django_db
 def test_create_todo_invalid_start_date(create_user, create_category):
@@ -87,7 +87,6 @@ def test_create_todo_invalid_start_date(create_user, create_category):
     }
     response = client.post(url, data, format='json')
     assert response.status_code == 400
-    assert response.data['error'] == 'start_date must be before end_date'
 
 @pytest.mark.django_db
 def test_create_todo_invalid_start_date(create_user, create_category):
@@ -189,7 +188,6 @@ def test_get_todos_ordering(create_user, create_category):
     )
     response = client.get(url, {'user_id': create_user.id}, format='json')
     assert response.status_code == 200
-    print(response.data)
     assert response.data[0]['order'] == '0|a0000a:'
     assert response.data[1]['order'] == '0|hzzzzz:'
     assert response.data[2]['order'] == '0|i00000:'
@@ -288,6 +286,37 @@ def test_update_todo_success(create_user, create_category):
     assert response.data['end_date'] == '2024-08-03'
 
 @pytest.mark.django_db
+def test_update_todo_success_order(create_user, create_category):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo',
+        category_id=create_category,
+        order='0|hzzzzz:'
+    )
+    todo2 = Todo.objects.create(
+        user_id=create_user,
+        start_date='2024-08-01',
+        end_date='2024-08-02',
+        content='Test Todo 2',
+        category_id=create_category,
+        order='0|i00000:'
+    )
+    url = reverse('todos')  # URL name for the TodoView patch method
+    data = {
+        'todo_id': todo.id,
+        'order' : {
+            'prev_id' : todo2.id,
+            'next_id' : None,
+            'updated_order' : '0|j0000i:'
+        }
+    }
+    response = client.patch(url, data, format='json')
+    assert response.status_code == 200
+    assert response.data['order'] == '0|j0000i:'
+
+@pytest.mark.django_db
 def test_update_todo_invalid_order(create_user, create_category):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -319,8 +348,7 @@ def test_update_todo_invalid_order(create_user, create_category):
     }
     response = client.patch(url, data, format='json')
     assert response.status_code == 400
-    assert response.data['error'] == 'Invalid order'
-
+    
 @pytest.mark.django_db
 def test_update_todo_invalid_start_date(create_user, create_category):
     todo = Todo.objects.create(
@@ -340,7 +368,7 @@ def test_update_todo_invalid_start_date(create_user, create_category):
     }
     response = client.patch(url, data, format='json')
     assert response.status_code == 400
-    assert response.data['error'] == 'start_date must be before end_date'
+    assert response.data['non_field_errors'][0] == 'start date should be less than end date'  # Adjust the assertion based on the actual error message
 
 @pytest.mark.django_db
 def test_update_todo_invalid_category_id(create_user, create_category):

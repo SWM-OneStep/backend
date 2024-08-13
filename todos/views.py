@@ -4,34 +4,19 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from todos.lexorank import LexoRank
 
 from todos.models import Todo, SubTodo, Category
 from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializer, CategorySerializer
 from todos.swagger_serializers import SwaggerTodoPatchSerializer, SwaggerSubTodoPatchSerializer, SwaggerCategoryPatchSerializer
+from todos.utils import validate_lexo_order
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from onestep_be.settings import client
 import json
 
-def validate_order(prev, next, updated):
-    updated_lexo = LexoRank(updated)
-    if prev is None and next is None:
-        return True
-    if prev is None:
-        next_lexo = LexoRank(next)
-        if next_lexo.compare_to(updated_lexo) <= 0:
-            return False
-    elif next is None:
-        prev_lexo = LexoRank(prev)
-        if prev_lexo.compare_to(updated_lexo) >= 0:
-            return False
-    else:
-        prev_lexo = LexoRank(prev)
-        next_lexo = LexoRank(next)
-        if prev_lexo.compare_to(updated_lexo) >= 0 or next_lexo.compare_to(updated_lexo) <= 0:
-            return False
-    return True
+from copy import deepcopy
+
+
 
 
 class TodoView(APIView):
@@ -57,19 +42,8 @@ class TodoView(APIView):
         - 암호화
         '''
         data = request.data
-
-        if 'start_date' in data and 'end_date' in data:
-            if data['start_date'] > data['end_date']:
-                return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # validate order
-        last_todo = Todo.objects.filter(user_id=data['user_id'], deleted_at__isnull=True).order_by('-order').first()
-        if last_todo is not None:
-            last_order = last_todo.order
-            if validate_order(prev=last_order, next=None, updated=data['order']) is False:  
-                    return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
         # category_id validation
-        serializer = TodoSerializer(data=data)
+        serializer = TodoSerializer(context={'request': request}, data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -116,22 +90,13 @@ class TodoView(APIView):
                 "updated_order" : "0|asdf:"
             }
         '''
+        request_data = deepcopy(request.data)
         todo_id = request.data.get('todo_id')
-        update_fields = ['content', 'category_id', 'start_date', 'end_date', 'is_completed']
-        update_data = {field: request.data.get(field) for field in update_fields if field in request.data}
-        
-        if not update_data and request.data.get('order') is None:
-            return Response({"error": "At least one of content, category_id, start_date, end_date, is_completed must be provided"}, status=status.HTTP_400_BAD_REQUEST)
-        if 'user_id' in request.data:
-            return Response({"error": "user_id cannot be updated"}, status=status.HTTP_400_BAD_REQUEST)
-        if request.data.get('start_date') and request.data.get('end_date') and update_data['start_date'] > update_data['end_date']:
-            return Response({"error": "start_date must be before end_date"}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
         except Todo.DoesNotExist:
             return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
-        
+        print("request_data before" , request_data)
         # validate order
         if request.data.get('order'):
             order_data = request.data.get('order')
@@ -140,16 +105,17 @@ class TodoView(APIView):
             updated_order = order_data.get('updated_order')
             prev = None
             next = None
-            if prev_id:
-                prev = Todo.objects.filter(id=prev_id, deleted_at__isnull=True).first().order
-            if next_id:
-                next = Todo.objects.filter(id=next_id, deleted_at__isnull=True).first().order
-            if validate_order(prev=prev, next=next, updated=updated_order) is False:
+            if prev_id :
+                prev = Todo.objects.get_with_id(id=prev_id).order
+            if next_id :
+                next = Todo.objects.get_with_id(id=next_id).order
+            if validate_lexo_order(prev=prev, next=next, updated=updated_order) is False:
                 return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                update_data['order'] = updated_order
+                request_data['order'] = updated_order
+        print("request_data" , request_data)
         
-        serializer = TodoSerializer(todo, data=update_data, partial=True)
+        serializer = TodoSerializer(context={'request' : request}, instance=todo, data=request_data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -203,9 +169,9 @@ class SubTodoView(APIView):
             last_subtodo = SubTodo.objects.filter(todo=subtodo_data['todo'], deleted_at__isnull=True).order_by('-order').first()
             if last_subtodo:
                 last_order = last_subtodo.order
-                if validate_order(prev=last_order, next=None, updated=subtodo_data['order']) is False:
+                if validate_lexo_order(prev=last_order, next=None, updated=subtodo_data['order']) is False:
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = SubTodoSerializer(data=data, many=True)
+        serializer = SubTodoSerializer(context={'request': request}, data=data, many=True)
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -269,12 +235,12 @@ class SubTodoView(APIView):
                 prev = SubTodo.objects.filter(id=prev_id, deleted_at__isnull=True).first().order
             if next_id:
                 next = SubTodo.objects.filter(id=next_id, deleted_at__isnull=True).first().order
-            if validate_order(prev=prev, next=next, updated=updated_order) is False:
+            if validate_lexo_order(prev=prev, next=next, updated=updated_order) is False:
                 return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 update_data['order'] = updated_order
 
-        serializer = SubTodoSerializer(sub_todo, data=update_data, partial=True)
+        serializer = SubTodoSerializer(context={'request': request}, instance=sub_todo, data=update_data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -321,10 +287,10 @@ class CategoryView(APIView):
         last_category = Category.objects.filter(user_id=data['user_id'], deleted_at__isnull=True).order_by('-order').first()
         if last_category is not None:
             last_order = last_category.order
-            if validate_order(prev=last_order, next=None, updated=data['order']) is False:  
+            if validate_lexo_order(prev=last_order, next=None, updated=data['order']) is False:  
                     return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST) 
             
-        serializer = CategorySerializer(data=data)
+        serializer = CategorySerializer(context={'request': request}, data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -361,12 +327,12 @@ class CategoryView(APIView):
                 prev = Category.objects.filter(id=prev_id, deleted_at__isnull=True).first().order
             if next_id:
                 next = Category.objects.filter(id=next_id, deleted_at__isnull=True).first().order
-            if validate_order(prev=prev, next=next, updated=updated_order) is False:
+            if validate_lexo_order(prev=prev, next=next, updated=updated_order) is False:
                 return Response({"error": "Invalid order"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 update_data['order'] = updated_order
         
-        serializer = CategorySerializer(category, data=update_data, partial=True)
+        serializer = CategorySerializer(context={'request':request}, instance=category, data=update_data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

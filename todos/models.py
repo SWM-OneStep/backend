@@ -29,7 +29,7 @@ class TodosManager(models.Manager):
             user_id=user_id,
             deleted_at__isnull=True
         ).annotate(
-            children_count=Count('children', filter=Q(children__deleted_at__isnull=True, children__date__isnull=True))
+            todos_count=Count('children', filter=Q(todos__deleted_at__isnull=True, children__date__isnull=True))
         ).filter(
             Q(end_date__isnull=True, start_date__isnull=True) |  Q(children_count__gt=0)
         ).prefetch_related(
@@ -77,7 +77,7 @@ class TimeStamp(models.Model):
 class Todo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    category_id = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='children')
+    category_id = models.ForeignKey('Category', on_delete=models.CASCADE)
     start_date = models.DateField(null = True)
     end_date = models.DateField(null = True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
