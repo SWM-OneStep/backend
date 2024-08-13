@@ -11,7 +11,7 @@ from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializ
 from todos.swagger_serializers import SwaggerTodoPatchSerializer, SwaggerSubTodoPatchSerializer, SwaggerCategoryPatchSerializer
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from onestep_be.settings.base import client
+from onestep_be.settings import client
 import json
 
 def validate_order(prev, next, updated):

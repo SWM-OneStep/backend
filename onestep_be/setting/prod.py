@@ -1,4 +1,4 @@
-from onestep_be.settings.base import *
+from onestep_be.settings import *
 from accounts.aws import get_secret
 
 

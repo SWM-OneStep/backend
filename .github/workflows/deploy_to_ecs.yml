@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Set Dockerfile Path
+        id: dockerfile-path
+        run: |
+          echo "DOCKERFILE_PATH=Dockerfile.dev" >> $GITHUB_ENV
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -26,22 +31,20 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY_NAME }}:latest .
-          docker tag ${{ secrets.ECR_REPOSITORY_NAME }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+          docker build -f ${{ env.DOCKERFILE_PATH }} -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }} .
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}
 
       - name: Render ECS task definition
         run: |
           cat > ecs-task-def.json <<EOL
           {
-            "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:637423471998:task-definition/onestep-prod-fargate2:2",
             "containerDefinitions": [
               {
                 "name": "onestep-fargate",
-                "image": "637423471998.dkr.ecr.ap-northeast-2.amazonaws.com/onestep_private:latest",
+                "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}",
                 "cpu": 0,
                 "portMappings": [
                   {
@@ -76,6 +79,10 @@ jobs:
                   {
                     "name": "AWS_SECRET_ACCESS_KEY",
                     "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+                  },
+                  {
+                    "name": "AWS_SECRET_NAME_PROD",
+                    "value": "${{ secrets.AWS_SECRET_NAME_PROD }}"
                   }
                 ],
                 "environmentFiles": [],
@@ -99,7 +106,6 @@ jobs:
             "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
             "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
             "networkMode": "awsvpc",
-            "revision": 1,
             "volumes": [],
             "status": "ACTIVE",
             "requiresAttributes": [
@@ -145,7 +151,6 @@ jobs:
               "cpuArchitecture": "X86_64",
               "operatingSystemFamily": "LINUX"
             },
-            "registeredAt": "2024-07-28T13:39:51.840Z",
             "registeredBy": "arn:aws:iam::637423471998:root",
             "tags": []
           }
@@ -157,10 +162,10 @@ jobs:
         with:
           task-definition: ecs-task-def.json
           container-name: onestep-fargate
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}
 
       - name: Deploy to ECS service
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ secrets.ECS_SERVICE_NAME }}
