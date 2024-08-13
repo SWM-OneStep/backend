@@ -22,7 +22,7 @@ class SubTodoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class GetTodoSerializer(serializers.ModelSerializer):
-    children = SubTodoSerializer(many=True, read_only=True) 
+    children = SubTodoSerializer(many=True, read_only=True, source='subtodos') 
     class Meta:
         model = Todo
         fields = ['id', 'content', 'category_id', 'start_date', 'end_date', 'user_id', 'order', 'is_completed', 'children']
