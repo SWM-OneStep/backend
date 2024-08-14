@@ -9,3 +9,6 @@ line-length = 79
 [tool.ruff.lint]
 # Add the `line-too-long` rule to the enforced rule set.
 extend-select = ["E501"]
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true
