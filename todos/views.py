@@ -4,7 +4,7 @@ import json
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -48,7 +48,7 @@ def validate_order(prev, next, updated):
 
 
 class TodoView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     queryset = Todo.objects.all()
 
     @swagger_auto_schema(
@@ -322,7 +322,7 @@ class TodoView(APIView):
 
 
 class SubTodoView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["SubTodo"],
@@ -539,7 +539,7 @@ class SubTodoView(APIView):
 
 
 class CategoryView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["Category"],
@@ -749,7 +749,7 @@ class CategoryView(APIView):
 
 
 class InboxView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["InboxTodo"],
@@ -789,7 +789,7 @@ class InboxView(APIView):
 
 
 class RecommendSubTodo(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
