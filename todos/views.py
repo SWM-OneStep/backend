@@ -10,8 +10,9 @@ from todos.models import Todo, SubTodo, Category
 from todos.serializers import TodoSerializer, GetTodoSerializer, SubTodoSerializer, CategorySerializer
 from todos.swagger_serializers import SwaggerTodoPatchSerializer, SwaggerSubTodoPatchSerializer, SwaggerCategoryPatchSerializer
 
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from onestep_be.settings import client
+
 import json
 
 def validate_order(prev, next, updated):
