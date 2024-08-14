@@ -19,6 +19,7 @@ from openai import OpenAI
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SKIP_AUTHENTICATION = False
 
 # Load all secret variables stored in AWS secret manager
 SECRETS = eval(get_secret())
