@@ -1,18 +1,14 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from accounts.models import *
-from accounts.serializers import *
-import os
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from google.auth.transport import requests
 from google.oauth2 import id_token
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import get_user_model
-from django.conf import settings
-from accounts.serializers import *
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from accounts.models import Device
+from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
 
 User = get_user_model()
@@ -43,7 +39,9 @@ class GoogleLogin(APIView):
             )
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                user, _ = User.objects.get_or_create(username=email, password="")
+                user, _ = User.objects.get_or_create(
+                    username=email, password=""
+                )
                 Device.objects.get_or_create(user_id=user, token=device_token)
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
@@ -52,7 +50,7 @@ class GoogleLogin(APIView):
                         "access": str(refresh.access_token),
                     }
                 )
-        except Exception as e:
+        except Exception:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -65,8 +63,11 @@ class UserRetrieveView(APIView):
         user = User.objects.get(username=request.user.username)
         serializer = UserSerializer(user)
         return Response(serializer.data)
-    
+
+
 class AndroidClientView(APIView):
     def get(self, request):
         ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
-        return Response({"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK)
+        return Response(
+            {"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK
+        )
