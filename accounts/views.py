@@ -65,3 +65,8 @@ class UserRetrieveView(APIView):
         user = User.objects.get(username=request.user.username)
         serializer = UserSerializer(user)
         return Response(serializer.data)
+    
+class AndroidClientView(APIView):
+    def get(self, request):
+        ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
+        return Response({"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK)

@@ -1,4 +1,3 @@
-from django.contrib import admin
 from django.urls import path
 from accounts.views import *
 from rest_framework_simplejwt.views import (
@@ -12,4 +11,5 @@ urlpatterns = [
     path("login/google/", GoogleLogin.as_view(), name="google_login"),
     path("test/", TestView.as_view(), name="test"),
     path("user/", UserRetrieveView.as_view(), name="user"),
+    path("android/", AndroidClientView.as_view(), name="android"),
 ]

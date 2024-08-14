@@ -29,3 +29,14 @@ mysql 서버가 실행 중인지 확인합니다. (mac 기준입니다.)
 <pre><code>python manage.py runserver</code></pre><br/>
 
 
+Ruff 적용 관련
+<pre><code>"[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  }</code></pre>
+ruff 를 적용하기 위해 vscode 의 경우 cmd shift p 를 누른 후 settings.json 파일에 위의 코드를 추가해주세요.
+

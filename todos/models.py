@@ -29,11 +29,11 @@ class TodosManager(models.Manager):
             user_id=user_id,
             deleted_at__isnull=True
         ).annotate(
-            children_count=Count('children', filter=Q(children__deleted_at__isnull=True, children__date__isnull=True))
+            subtodos_count=Count('subtodos', filter=Q(subtodos__deleted_at__isnull=True, subtodos__date__isnull=True))
         ).filter(
-            Q(end_date__isnull=True, start_date__isnull=True) |  Q(children_count__gt=0)
+            Q(end_date__isnull=True, start_date__isnull=True) |  Q(subtodos_count__gt=0)
         ).prefetch_related(
-            Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=True).order_by('order'))
+            Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=True).order_by('order'))
         ).order_by('order')
     def get_daily_with_date(self, user_id, start_date, end_date):
         return Todo.objects.filter(
@@ -54,7 +54,7 @@ class TodosManager(models.Manager):
             start_date__isnull=True,
             end_date__isnull=True
         ).order_by('order').prefetch_related(
-            Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
+            Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
         )
     def get_daily(self, user_id):
         return Todo.objects.filter(
@@ -62,7 +62,7 @@ class TodosManager(models.Manager):
                 ).filter(
                     Q(end_date__isnull = False) | Q(start_date__isnull = False)
                 ).order_by('order').prefetch_related(
-                Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
+                Prefetch('subtodos', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
             )
 
 class TimeStamp(models.Model):
@@ -77,7 +77,7 @@ class TimeStamp(models.Model):
 class Todo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    category_id = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='children')
+    category_id = models.ForeignKey('Category', on_delete=models.CASCADE)
     start_date = models.DateField(null = True)
     end_date = models.DateField(null = True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -93,7 +93,7 @@ class Todo(TimeStamp):
 class SubTodo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    todo = models.ForeignKey('Todo', on_delete=models.CASCADE, related_name='children')
+    todo = models.ForeignKey('Todo', on_delete=models.CASCADE, related_name='subtodos')
     date = models.DateField(null=True)
     order = models.CharField(max_length=255, null=True)
     is_completed = models.BooleanField(default=False)
