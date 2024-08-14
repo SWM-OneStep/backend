@@ -162,6 +162,14 @@ DATABASES = {
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
         "HOST": SECRETS.get("DB_HOST"),
         "PORT": SECRETS.get("DB_PORT"),
+    },
+    "test": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": SECRETS.get("TEST_DB_NAME"),
+        "USER": SECRETS.get("TEST_DB_USER"),
+        "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
+        "HOST": SECRETS.get("TEST_DB_HOST"),
+        "PORT": SECRETS.get("TEST_DB_PORT"),
     }
 }
 
