@@ -1,9 +1,8 @@
-from typing import Any
 from django.db import models
-from accounts.models import User
-
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
-from django.db.models import Prefetch, Q, Count
+
+from accounts.models import User
 
 
 class TodosManager(models.Manager):
@@ -11,59 +10,93 @@ class TodosManager(models.Manager):
         instance.deleted_at = timezone.now()
         instance.save()
         return instance
+
     def delete_many(self, instances):
         for instance in instances:
             instance.deleted_at = timezone.now()
             instance.save()
         return instances
+
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
+
     def get_with_id(self, id):
         return self.get_queryset().filter(id=id).first()
+
     def get_with_user_id(self, user_id):
-        return self.get_queryset().filter(user_id=user_id).order_by('order')
+        return self.get_queryset().filter(user_id=user_id).order_by("order")
+
     def get_subtodos(self, todo_id):
-        return self.get_queryset().filter(todo=todo_id).order_by('order')
+        return self.get_queryset().filter(todo=todo_id).order_by("order")
+
     def get_inbox(self, user_id):
-        return Todo.objects.filter(
-            user_id=user_id,
-            deleted_at__isnull=True
-        ).annotate(
-            todos_count=Count('children', filter=Q(todos__deleted_at__isnull=True, children__date__isnull=True))
-        ).filter(
-            Q(end_date__isnull=True, start_date__isnull=True) |  Q(children_count__gt=0)
-        ).prefetch_related(
-            Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=True).order_by('order'))
-        ).order_by('order')
-    def get_daily_with_date(self, user_id, start_date, end_date):
-        return Todo.objects.filter(
-            user_id=user_id,
-            deleted_at__isnull=True
-        ).filter(
-            (
-                Q(start_date__isnull=True) |
-                Q(start_date__lte=end_date, start_date__gte=start_date)
-            ) | (
-                Q(end_date__isnull=True) |
-                Q(end_date__lte=end_date, end_date__gte=start_date)
-            ) |
-            (
-                Q(start_date__lte=start_date, end_date__gte=end_date)
+        return (
+            Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
+            .annotate(
+                todos_count=Count(
+                    "children",
+                    filter=Q(
+                        todos__deleted_at__isnull=True,
+                        children__date__isnull=True,
+                    ),
+                )
             )
-        ).exclude(
-            start_date__isnull=True,
-            end_date__isnull=True
-        ).order_by('order').prefetch_related(
-            Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
+            .filter(
+                Q(end_date__isnull=True, start_date__isnull=True)
+                | Q(children_count__gt=0)
+            )
+            .prefetch_related(
+                Prefetch(
+                    "children",
+                    queryset=SubTodo.objects.filter(
+                        deleted_at__isnull=True, date__isnull=True
+                    ).order_by("order"),
+                )
+            )
+            .order_by("order")
         )
-    def get_daily(self, user_id):
-        return Todo.objects.filter(
-                user_id = user_id, deleted_at__isnull=True
-                ).filter(
-                    Q(end_date__isnull = False) | Q(start_date__isnull = False)
-                ).order_by('order').prefetch_related(
-                Prefetch('children', queryset=SubTodo.objects.filter(deleted_at__isnull=True, date__isnull=False).order_by('order'))
+
+    def get_daily_with_date(self, user_id, start_date, end_date):
+        return (
+            Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
+            .filter(
+                (
+                    Q(start_date__isnull=True)
+                    | Q(start_date__lte=end_date, start_date__gte=start_date)
+                )
+                | (
+                    Q(end_date__isnull=True)
+                    | Q(end_date__lte=end_date, end_date__gte=start_date)
+                )
+                | (Q(start_date__lte=start_date, end_date__gte=end_date))
             )
+            .exclude(start_date__isnull=True, end_date__isnull=True)
+            .order_by("order")
+            .prefetch_related(
+                Prefetch(
+                    "subtodos",
+                    queryset=SubTodo.objects.filter(
+                        deleted_at__isnull=True, date__isnull=False
+                    ).order_by("order"),
+                )
+            )
+        )
+
+    def get_daily(self, user_id):
+        return (
+            Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
+            .filter(Q(end_date__isnull=False) | Q(start_date__isnull=False))
+            .order_by("order")
+            .prefetch_related(
+                Prefetch(
+                    "subtodos",
+                    queryset=SubTodo.objects.filter(
+                        deleted_at__isnull=True, date__isnull=False
+                    ).order_by("order"),
+                )
+            )
+        )
+
 
 class TimeStamp(models.Model):
     created_at = models.DateTimeField(null=True, auto_now_add=True)
@@ -73,33 +106,35 @@ class TimeStamp(models.Model):
     class Meta:
         abstract = True
 
-        
+
 class Todo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    category_id = models.ForeignKey('Category', on_delete=models.CASCADE)
-    start_date = models.DateField(null = True)
-    end_date = models.DateField(null = True)
+    category_id = models.ForeignKey("Category", on_delete=models.CASCADE)
+    start_date = models.DateField(null=True)
+    end_date = models.DateField(null=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     order = models.CharField(max_length=255)
     is_completed = models.BooleanField(default=False)
-    
+
     objects = TodosManager()
-        
+
     def __str__(self):
         return self.content
-    
+
 
 class SubTodo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
-    todo = models.ForeignKey('Todo', on_delete=models.CASCADE, related_name='children')
+    todo = models.ForeignKey(
+        "Todo", on_delete=models.CASCADE, related_name="subtodos"
+    )
     date = models.DateField(null=True)
     order = models.CharField(max_length=255, null=True)
     is_completed = models.BooleanField(default=False)
 
     objects = TodosManager()
-    
+
     def __str__(self):
         return self.content
 
@@ -112,5 +147,3 @@ class Category(TimeStamp):
     order = models.CharField(max_length=255, null=True)
 
     objects = TodosManager()
-
-

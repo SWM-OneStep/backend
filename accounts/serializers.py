@@ -1,10 +1,10 @@
-from rest_framework import serializers
 from datetime import datetime
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
 
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
 
 User = get_user_model()
+
 
 class LoginRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="email")
@@ -31,13 +31,10 @@ class LoginPayloadSerializer(LoginRequestSerializer):
         return super().to_internal_value(data)
 
     def is_valid(self, *, raise_exception=False):
-
         return super().is_valid(raise_exception=raise_exception)
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'social_provider']
-
+        fields = ["id", "email", "username", "social_provider"]
