@@ -1,6 +1,6 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
@@ -14,7 +14,6 @@ class TimeStamp(models.Model):
 
 
 class User(AbstractUser, TimeStamp):
-
     class SocialProvider(models.TextChoices):
         GOOGLE = "GOOGLE"
         KAKAO = "KAKAO"
@@ -26,7 +25,7 @@ class User(AbstractUser, TimeStamp):
         max_length=150,
         unique=True,
         help_text=_(
-            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."  # noqa : E501
         ),
         validators=[username_validator],
         error_messages={
@@ -35,7 +34,9 @@ class User(AbstractUser, TimeStamp):
     )
     password = models.CharField(_("password"), max_length=128, null=True)
     social_provider = models.CharField(
-        max_length=30, choices=SocialProvider.choices, default=SocialProvider.GOOGLE
+        max_length=30,
+        choices=SocialProvider.choices,
+        default=SocialProvider.GOOGLE,
     )
 
 
