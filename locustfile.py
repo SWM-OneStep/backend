@@ -3,7 +3,7 @@ from django.conf import settings
 import os
 
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "onestep_be.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "onestep_be.setting.test")
 
 class TestTodos(HttpUser):
 
