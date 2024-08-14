@@ -169,7 +169,7 @@ DATABASES = {
         "USER": SECRETS.get("TEST_DB_USER"),
         "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
         "HOST": SECRETS.get("TEST_DB_HOST"),
-        "PORT": SECRETS.get("TEST_DB_PORT"),
+        "PORT": SECRETS.get("DB_PORT"),
     }
 }
 
