@@ -10,6 +10,16 @@ from todos.utils import validate_lexo_order
 from .models import Category, SubTodo, Todo
 
 
+class OrderSerializer(serializers.Serializer):
+    prev_id = serializers.PrimaryKeyRelatedField(
+        queryset=Todo.objects.all(), required=True
+    )
+    next_id = serializers.PrimaryKeyRelatedField(
+        queryset=Todo.objects.all(), required=True
+    )
+    updated_order = serializers.CharField(max_length=255, required=True)
+
+
 class CategorySerializer(serializers.ModelSerializer):
     def validate_user_id(self, data):
         try:
@@ -142,8 +152,15 @@ class TodoSerializer(serializers.ModelSerializer):
     )
     start_date = serializers.DateField(allow_null=True, required=False)
     end_date = serializers.DateField(allow_null=True, required=False)
-    order = serializers.CharField(max_length=255)
+    order = serializers.SerializerMethodField()
     is_completed = serializers.BooleanField(default=False, required=False)
+
+    def get_order(self, obj):
+        request = self.context["request"]
+        if request.method == "PATCH":
+            return OrderSerializer(required=False)
+        else:
+            return serializers.CharField(max_length=255, required=True)
 
     def validate_category_id(self, data):
         try:
