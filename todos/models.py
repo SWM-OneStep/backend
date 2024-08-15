@@ -34,20 +34,20 @@ class TodosManager(models.Manager):
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
             .annotate(
                 todos_count=Count(
-                    "children",
+                    "subtodos",
                     filter=Q(
-                        todos__deleted_at__isnull=True,
-                        children__date__isnull=True,
+                        subtodos__deleted_at__isnull=True,
+                        subtodos__date__isnull=True,
                     ),
                 )
             )
             .filter(
                 Q(end_date__isnull=True, start_date__isnull=True)
-                | Q(children_count__gt=0)
+                | Q(subtodos_count__gt=0)
             )
             .prefetch_related(
                 Prefetch(
-                    "children",
+                    "subtodos",
                     queryset=SubTodo.objects.filter(
                         deleted_at__isnull=True, date__isnull=True
                     ).order_by("order"),

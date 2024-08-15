@@ -446,7 +446,7 @@ def test_update_todo_invalid_start_date(
     assert response.status_code == 400
     assert (
         response.data["non_field_errors"][0]
-        == "start date should be less than end date"
+        == "Start date should be less than end date"
     )  # Adjust the assertion based on the actual error message
 
 
