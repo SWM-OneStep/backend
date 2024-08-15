@@ -1,4 +1,4 @@
-name: Deploy to ECS
+name: Deploy to ECS Test
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       - name: Set Dockerfile Path
         id: dockerfile-path
         run: |
-          echo "DOCKERFILE_PATH=Dockerfile.dev" >> $GITHUB_ENV
+          echo "DOCKERFILE_PATH=Dockerfile.test" >> $GITHUB_ENV
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
