@@ -33,7 +33,7 @@ class TodosManager(models.Manager):
         return (
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
             .annotate(
-                todos_count=Count(
+                subtodos_count=Count(
                     "subtodos",
                     filter=Q(
                         subtodos__deleted_at__isnull=True,
