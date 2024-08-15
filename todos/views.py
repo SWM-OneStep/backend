@@ -1,6 +1,5 @@
 # todos/views.py
 import json
-from copy import deepcopy
 
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -22,7 +21,6 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
-from todos.utils import validate_lexo_order
 
 
 class TodoView(APIView):
@@ -144,7 +142,6 @@ class TodoView(APIView):
                 "updated_order" : "0|asdf:"
             }
         """  # noqa: E501
-        request_data = deepcopy(request.data)
         todo_id = request.data.get("todo_id")
         try:
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
@@ -152,36 +149,14 @@ class TodoView(APIView):
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-
-        # validate order
-        if request.data.get("order"):
-            order_data = request.data.get("order")
-            prev_id = order_data.get("prev_id")
-            next_id = order_data.get("next_id")
-            updated_order = order_data.get("updated_order")
-            prev = None
-            next = None
-            if prev_id:
-                prev = Todo.objects.get_with_id(id=prev_id).order
-            if next_id:
-                next = Todo.objects.get_with_id(id=next_id).order
-            if (
-                validate_lexo_order(
-                    prev=prev, next=next, updated=updated_order
-                )
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                request_data["order"] = updated_order
-
+        if "order" in request.data:
+            nested_order = request.data.get("order")
+            request.data["order"] = nested_order.get("updated_order")
+            request.data["patch_order"] = nested_order
         serializer = TodoSerializer(
             context={"request": request},
             instance=todo,
-            data=request_data,
+            data=request.data,
             partial=True,
         )
 
@@ -316,8 +291,6 @@ class SubTodoView(APIView):
             }
         """
         subtodo_id = request.data.get("subtodo_id")
-        request_data = deepcopy(request.data)
-
         try:
             sub_todo = SubTodo.objects.get(
                 id=subtodo_id, deleted_at__isnull=True
@@ -327,44 +300,14 @@ class SubTodoView(APIView):
                 {"error": "SubTodo not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        # validate order
-        if request.data.get("order"):
-            order_data = request.data.get("order")
-            prev_id = order_data.get("prev_id")
-            next_id = order_data.get("next_id")
-            updated_order = order_data.get("updated_order")
-            prev = None
-            next = None
-            if prev_id:
-                prev = (
-                    SubTodo.objects.filter(id=prev_id, deleted_at__isnull=True)
-                    .first()
-                    .order
-                )
-            if next_id:
-                next = (
-                    SubTodo.objects.filter(id=next_id, deleted_at__isnull=True)
-                    .first()
-                    .order
-                )
-            if (
-                validate_lexo_order(
-                    prev=prev, next=next, updated=updated_order
-                )
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                request_data["order"] = updated_order
-
+        if "order" in request.data:
+            nested_order = request.data.get("order")
+            request.data["order"] = nested_order.get("updated_order")
+            request.data["patch_order"] = nested_order
         serializer = SubTodoSerializer(
             context={"request": request},
             instance=sub_todo,
-            data=request_data,
+            data=request.data,
             partial=True,
         )
 
@@ -397,7 +340,6 @@ class SubTodoView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 sub todo입니다.
         """  # noqa: E501
         subtodo_id = request.data.get("subtodo_id")
-        print(subtodo_id)
         try:
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
@@ -468,7 +410,6 @@ class CategoryView(APIView):
             }
         """
         category_id = request.data.get("category_id")
-        request_data = deepcopy(request.data)
         if "user_id" in request.data:
             return Response(
                 {"error": "user_id cannot be updated"},
@@ -485,47 +426,15 @@ class CategoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # validate order
-        if request.data.get("order"):
-            order_data = request.data.get("order")
-            prev_id = order_data.get("prev_id")
-            next_id = order_data.get("next_id")
-            updated_order = order_data.get("updated_order")
-            prev = None
-            next = None
-            if prev_id:
-                prev = (
-                    Category.objects.filter(
-                        id=prev_id, deleted_at__isnull=True
-                    )
-                    .first()
-                    .order
-                )
-            if next_id:
-                next = (
-                    Category.objects.filter(
-                        id=next_id, deleted_at__isnull=True
-                    )
-                    .first()
-                    .order
-                )
-            if (
-                validate_lexo_order(
-                    prev=prev, next=next, updated=updated_order
-                )
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                request_data["order"] = updated_order
+        if "order" in request.data:
+            nested_order = request.data.get("order")
+            request.data["order"] = nested_order.get("updated_order")
+            request.data["patch_order"] = nested_order
 
         serializer = CategorySerializer(
             context={"request": request},
             instance=category,
-            data=request_data,
+            data=request.data,
             partial=True,
         )
         if serializer.is_valid(raise_exception=True):

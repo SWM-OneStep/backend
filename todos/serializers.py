@@ -10,17 +10,21 @@ from todos.utils import validate_lexo_order
 from .models import Category, SubTodo, Todo
 
 
-class OrderSerializer(serializers.Serializer):
+class PatchOrderSerializer(serializers.Serializer):
     prev_id = serializers.PrimaryKeyRelatedField(
-        queryset=Todo.objects.all(), required=True
+        queryset=Todo.objects.all(), required=False, allow_null=True
     )
     next_id = serializers.PrimaryKeyRelatedField(
-        queryset=Todo.objects.all(), required=True
+        queryset=Todo.objects.all(), required=False, allow_null=True
     )
     updated_order = serializers.CharField(max_length=255, required=True)
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = "__all__"
+
     def validate_user_id(self, data):
         try:
             User.objects.get(id=data.id)
@@ -44,6 +48,9 @@ class CategorySerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "At least one of color, title, order must be provided"
                 )
+            if data.get("user_id"):
+                raise serializers.ValidationError("User cannot be updated")
+            return data
 
         elif request.method == "POST":
             user_id = data.get("user_id")
@@ -65,10 +72,6 @@ class CategorySerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Order is invalid")
         return data
 
-    class Meta:
-        model = Category
-        fields = "__all__"
-
 
 class SubTodoSerializer(serializers.ModelSerializer):
     content = serializers.CharField(max_length=255)
@@ -78,12 +81,29 @@ class SubTodoSerializer(serializers.ModelSerializer):
     date = serializers.DateField(required=False, allow_null=True)
     order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False)
+    patch_order = PatchOrderSerializer(required=False)
+
+    class Meta:
+        model = SubTodo
+        fields = "__all__"
 
     def validate_todo(self, data):
         try:
             Todo.objects.get(id=data.id)
         except Todo.DoesNotExist:
             raise serializers.ValidationError("Todo does not exist")
+        return data
+
+    def validate_patch_order(self, data):
+        request = self.context["request"]
+        if request.method == "PATCH":
+            updated_order = data.get("updated_order")
+            prev = data.get("prev_id").order if data.get("prev_id") else None
+            next = data.get("next_id").order if data.get("next_id") else None
+            if not validate_lexo_order(
+                prev=prev, next=next, updated=updated_order
+            ):
+                raise serializers.ValidationError("Order is invalid")
         return data
 
     def validate(self, data):
@@ -119,10 +139,6 @@ class SubTodoSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Order is invalid")
         return data
 
-    class Meta:
-        model = SubTodo
-        fields = "__all__"
-
 
 class GetTodoSerializer(serializers.ModelSerializer):
     children = SubTodoSerializer(many=True, read_only=True, source="subtodos")
@@ -152,40 +168,56 @@ class TodoSerializer(serializers.ModelSerializer):
     )
     start_date = serializers.DateField(allow_null=True, required=False)
     end_date = serializers.DateField(allow_null=True, required=False)
-    order = serializers.SerializerMethodField()
+    order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False, required=False)
+    patch_order = PatchOrderSerializer(required=False)
 
-    def get_order(self, obj):
-        request = self.context["request"]
-        if request.method == "PATCH":
-            return OrderSerializer(required=False)
-        else:
-            return serializers.CharField(max_length=255, required=True)
+    class Meta:
+        model = Todo
+        fields = [
+            "id",
+            "content",
+            "category_id",
+            "start_date",
+            "end_date",
+            "user_id",
+            "order",
+            "is_completed",
+            "patch_order",
+        ]
 
     def validate_category_id(self, data):
-        try:
-            Category.objects.get(id=data.id)
-        except Category.DoesNotExist:
+        if not Category.objects.filter(id=data.id).exists():
             raise serializers.ValidationError("Category does not exist")
         return data
 
     def validate_user_id(self, data):
-        try:
-            User.objects.get(id=data.id)
-        except User.DoesNotExist:
+        if not User.objects.filter(id=data.id).exists():
             raise serializers.ValidationError("User does not exist")
+        return data
+
+    def validate_patch_order(self, data):
+        request = self.context["request"]
+        if request.method == "PATCH":
+            updated_order = data.get("updated_order")
+            prev = data.get("prev_id").order if data.get("prev_id") else None
+            next = data.get("next_id").order if data.get("next_id") else None
+            if not validate_lexo_order(
+                prev=prev, next=next, updated=updated_order
+            ):
+                raise serializers.ValidationError("Order is invalid")
         return data
 
     def validate(self, data):
         request = self.context["request"]
-        start_date = data.get("start_date", None)
-        end_date = data.get("end_date", None)
+        start_date = data.get("start_date")
+        end_date = data.get("end_date")
 
-        if start_date is not None and end_date is not None:
-            if start_date > end_date:
-                raise serializers.ValidationError(
-                    "start date should be less than end date"
-                )
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError(
+                "Start date should be less than end date"
+            )
+
         if request.method == "PATCH":
             if not any(
                 data.get(field)
@@ -199,11 +231,10 @@ class TodoSerializer(serializers.ModelSerializer):
                 ]
             ):
                 raise serializers.ValidationError(
-                    "At least one of content, category_id, start_date, \
-                        end_date, is_completed must be provided"
+                    "At least one of content, category_id, start_date, end_date, is_completed must be provided"  # noqa : E501
                 )
-            return data
-
+            if data.get("user_id"):
+                raise serializers.ValidationError("User cannot be updated")
         elif request.method == "POST":
             user_id = data.get("user_id")
             last_todo = (
@@ -211,36 +242,16 @@ class TodoSerializer(serializers.ModelSerializer):
                 .order_by("-order")
                 .first()
             )
-            if last_todo is not None:
-                last_order = last_todo.order
-                if (
-                    validate_lexo_order(
-                        prev=last_order, next=None, updated=data["order"]
-                    )
-                    is False
-                ):
-                    raise serializers.ValidationError("Order is invalid")
-        return data
+            if last_todo and not validate_lexo_order(
+                prev=last_todo.order, next=None, updated=data["order"]
+            ):
+                raise serializers.ValidationError("Order is invalid")
 
-    class Meta:
-        model = Todo
-        fields = [
-            "id",
-            "content",
-            "category_id",
-            "start_date",
-            "end_date",
-            "user_id",
-            "order",
-            "is_completed",
-        ]
+        return data
 
     def update(self, instance, validated_data):
         # Update the fields as usual
         for attr, value in validated_data.items():
-            if attr == "order":
-                instance.order = value
-                continue
             setattr(instance, attr, value)
 
         # Set the updated_at field to the current time
