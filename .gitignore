@@ -91,3 +91,6 @@ db.sqlite3
 
 /pyenv
 /.ruff_cache
+
+# debug
+.vscode/
