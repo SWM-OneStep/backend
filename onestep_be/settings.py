@@ -159,7 +159,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        'ENGINE': 'dj_db_conn_pool.backends.mysql',
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
@@ -167,7 +167,7 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     },
     "test": {
-        "ENGINE": "django.db.backends.mysql",
+        'ENGINE': 'dj_db_conn_pool.backends.mysql',
         "NAME": SECRETS.get("TEST_DB_NAME"),
         "USER": SECRETS.get("TEST_DB_USER"),
         "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
