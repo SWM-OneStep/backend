@@ -15,4 +15,4 @@ COPY . /app/
 EXPOSE 8000
 
 # 서버 실행 명령
-CMD ["sh", "-c", "python manage.py migrate && DJANGO_SETTINGS_MODULE=onestep_be.setting.prod gunicorn onestep_be.asgi:application -w 4 -k uvicorn.workers.UvicornWorker"]
+CMD ["sh", "-c", "python manage.py migrate && DJANGO_SETTINGS_MODULE=onestep_be.setting.prod gunicorn onestep_be.asgi:application --timeout 120 -w 4 -k uvicorn.workers.UvicornWorker"]
