@@ -23,6 +23,7 @@ from accounts.aws import get_secret
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SKIP_AUTHENTICATION = False
 
 # Load all secret variables stored in AWS secret manager
 SECRETS = eval(get_secret())
@@ -158,11 +159,19 @@ AUTH_USER_MODEL = "accounts.User"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        'ENGINE': 'dj_db_conn_pool.backends.mysql',
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
         "HOST": SECRETS.get("DB_HOST"),
+        "PORT": SECRETS.get("DB_PORT"),
+    },
+    "test": {
+        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "NAME": SECRETS.get("TEST_DB_NAME"),
+        "USER": SECRETS.get("TEST_DB_USER"),
+        "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
+        "HOST": SECRETS.get("TEST_DB_HOST"),
         "PORT": SECRETS.get("DB_PORT"),
     }
 }
