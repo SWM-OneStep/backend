@@ -9,23 +9,6 @@ User = get_user_model()
 client = APIClient()
 
 
-@pytest.fixture
-def create_user(db):
-    user = User.objects.create_user(
-        username="testuser",
-        email="testuser@example.com",
-        password="testpassword",
-    )
-    return user
-
-
-@pytest.fixture
-def authenticated_client(create_user):
-    client.force_authenticate(user=create_user)
-    yield client
-    client.force_authenticate(user=None)  # logout
-
-
 """
 ======================================
 # Todo Post checklist #

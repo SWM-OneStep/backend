@@ -3,39 +3,10 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from todos.models import Category, Todo
+from todos.models import Todo
 
 User = get_user_model()
 client = APIClient()
-
-
-@pytest.fixture
-def create_user(db):
-    user = User.objects.create_user(
-        username="testuser",
-        email="testuser@example.com",
-        password="testpassword",
-    )
-    return user
-
-
-@pytest.fixture
-def authenticated_client(create_user):
-    client.force_authenticate(user=create_user)
-    yield client
-    client.force_authenticate(user=None)  # logout
-
-
-@pytest.fixture
-def create_category(db, create_user):
-    category = Category.objects.create(
-        user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|hzzzzz:",
-    )
-    return category
-
 
 """
 ======================================
