@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onestep_be.settings import client
-from todos.lexorank import LexoRank
 from todos.models import Category, SubTodo, Todo
 from todos.serializers import (
     CategorySerializer,
@@ -22,29 +21,6 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
-
-
-def validate_order(prev, next, updated):
-    updated_lexo = LexoRank(updated)
-    if prev is None and next is None:
-        return True
-    if prev is None:
-        next_lexo = LexoRank(next)
-        if next_lexo.compare_to(updated_lexo) <= 0:
-            return False
-    elif next is None:
-        prev_lexo = LexoRank(prev)
-        if prev_lexo.compare_to(updated_lexo) >= 0:
-            return False
-    else:
-        prev_lexo = LexoRank(prev)
-        next_lexo = LexoRank(next)
-        if (
-            prev_lexo.compare_to(updated_lexo) >= 0
-            or next_lexo.compare_to(updated_lexo) <= 0
-        ):
-            return False
-    return True
 
 
 class TodoView(APIView):
@@ -75,36 +51,8 @@ class TodoView(APIView):
         - 암호화
         """
         data = request.data
-
-        if "start_date" in data and "end_date" in data:
-            if data["start_date"] > data["end_date"]:
-                return Response(
-                    {"error": "start_date must be before end_date"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # validate order
-        last_todo = (
-            Todo.objects.filter(
-                user_id=data["user_id"], deleted_at__isnull=True
-            )
-            .order_by("-order")
-            .first()
-        )
-        if last_todo is not None:
-            last_order = last_todo.order
-            if (
-                validate_order(
-                    prev=last_order, next=None, updated=data["order"]
-                )
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
         # category_id validation
-        serializer = TodoSerializer(data=data)
+        serializer = TodoSerializer(context={"request": request}, data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -195,81 +143,23 @@ class TodoView(APIView):
             }
         """  # noqa: E501
         todo_id = request.data.get("todo_id")
-        update_fields = [
-            "content",
-            "category_id",
-            "start_date",
-            "end_date",
-            "is_completed",
-        ]
-        update_data = {
-            field: request.data.get(field)
-            for field in update_fields
-            if field in request.data
-        }
-
-        if not update_data and request.data.get("order") is None:
-            return Response(
-                {
-                    "error": "update_data must contain at least one of\
-                    content, category, start_date, or end_date"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if "user_id" in request.data:
-            return Response(
-                {"error": "user_id cannot be updated"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if (
-            request.data.get("start_date")
-            and request.data.get("end_date")
-            and update_data["start_date"] > update_data["end_date"]
-        ):
-            return Response(
-                {"error": "start_date must be before end_date"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         try:
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
         except Todo.DoesNotExist:
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
+        if "order" in request.data:
+            nested_order = request.data.get("order")
+            request.data["order"] = nested_order.get("updated_order")
+            request.data["patch_order"] = nested_order
+        serializer = TodoSerializer(
+            context={"request": request},
+            instance=todo,
+            data=request.data,
+            partial=True,
+        )
 
-        # validate order
-        if request.data.get("order"):
-            order_data = request.data.get("order")
-            prev_id = order_data.get("prev_id")
-            next_id = order_data.get("next_id")
-            updated_order = order_data.get("updated_order")
-            prev = None
-            next = None
-            if prev_id:
-                prev = (
-                    Todo.objects.filter(id=prev_id, deleted_at__isnull=True)
-                    .first()
-                    .order
-                )
-            if next_id:
-                next = (
-                    Todo.objects.filter(id=next_id, deleted_at__isnull=True)
-                    .first()
-                    .order
-                )
-            if (
-                validate_order(prev=prev, next=next, updated=updated_order)
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                update_data["order"] = updated_order
-
-        serializer = TodoSerializer(todo, data=update_data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -339,31 +229,9 @@ class SubTodoView(APIView):
         - date 는 parent의 start_date와 end_date의 사이여야 합니다.
         """
         data = request.data
-
-        for subtodo_data in data:
-            # validate order
-            last_subtodo = (
-                SubTodo.objects.filter(
-                    todo=subtodo_data["todo"], deleted_at__isnull=True
-                )
-                .order_by("-order")
-                .first()
-            )
-            if last_subtodo:
-                last_order = last_subtodo.order
-                if (
-                    validate_order(
-                        prev=last_order,
-                        next=None,
-                        updated=subtodo_data["order"],
-                    )
-                    is False
-                ):
-                    return Response(
-                        {"error": "Invalid order"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-        serializer = SubTodoSerializer(data=data, many=True)
+        serializer = SubTodoSerializer(
+            context={"request": request}, data=data, many=True
+        )
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -423,25 +291,6 @@ class SubTodoView(APIView):
             }
         """
         subtodo_id = request.data.get("subtodo_id")
-        update_fields = ["content", "date", "is_completed", "todo"]
-        update_data = {
-            field: request.data.get(field)
-            for field in update_fields
-            if field in request.data
-        }
-
-        if not update_data and request.data.get("order") is None:
-            return Response(
-                {
-                    "error": "At least one of content, date, or parent_id must be provided"  # noqa: E501
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if "user_id" in request.data:
-            return Response(
-                {"error": "user_id cannot be updated"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         try:
             sub_todo = SubTodo.objects.get(
                 id=subtodo_id, deleted_at__isnull=True
@@ -451,41 +300,17 @@ class SubTodoView(APIView):
                 {"error": "SubTodo not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        # validate order
-        if request.data.get("order"):
-            order_data = request.data.get("order")
-            prev_id = order_data.get("prev_id")
-            next_id = order_data.get("next_id")
-            updated_order = order_data.get("updated_order")
-            prev = None
-            next = None
-            if prev_id:
-                prev = (
-                    SubTodo.objects.filter(id=prev_id, deleted_at__isnull=True)
-                    .first()
-                    .order
-                )
-            if next_id:
-                next = (
-                    SubTodo.objects.filter(id=next_id, deleted_at__isnull=True)
-                    .first()
-                    .order
-                )
-            if (
-                validate_order(prev=prev, next=next, updated=updated_order)
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                update_data["order"] = updated_order
-
+        if "order" in request.data:
+            nested_order = request.data.get("order")
+            request.data["order"] = nested_order.get("updated_order")
+            request.data["patch_order"] = nested_order
         serializer = SubTodoSerializer(
-            sub_todo, data=update_data, partial=True
+            context={"request": request},
+            instance=sub_todo,
+            data=request.data,
+            partial=True,
         )
+
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -515,7 +340,6 @@ class SubTodoView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 sub todo입니다.
         """  # noqa: E501
         subtodo_id = request.data.get("subtodo_id")
-        print(subtodo_id)
         try:
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
@@ -556,28 +380,10 @@ class CategoryView(APIView):
         """
         data = request.data
 
-        # validate order
-        last_category = (
-            Category.objects.filter(
-                user_id=data["user_id"], deleted_at__isnull=True
-            )
-            .order_by("-order")
-            .first()
+        serializer = CategorySerializer(
+            context={"request": request}, data=data
         )
-        if last_category is not None:
-            last_order = last_category.order
-            if (
-                validate_order(
-                    prev=last_order, next=None, updated=data["order"]
-                )
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
-        serializer = CategorySerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -596,24 +402,20 @@ class CategoryView(APIView):
         - 이 함수는 category를 수정하는 함수입니다.
         - 입력 : category_id, 수정 내용
         - 수정 내용은 title, color 중 하나 이상이어야 합니다.
+        - order 의 경우 아래와 같이 수신됨
+            "order" : {
+                "prev_id" : 1,
+                "next_id" : 3,
+                "updated_order" : "0|asdf:"
+            }
         """
         category_id = request.data.get("category_id")
-        update_fields = ["title", "color", "order"]
-        update_data = {
-            field: request.data.get(field)
-            for field in update_fields
-            if field in request.data
-        }
-        if not update_data:
-            return Response(
-                {"error": "At least one of title or color must be provided"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         if "user_id" in request.data:
             return Response(
                 {"error": "user_id cannot be updated"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         try:
             category = Category.objects.get(
                 id=category_id, deleted_at__isnull=True
@@ -624,43 +426,16 @@ class CategoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # validate order
-        if request.data.get("order"):
-            order_data = request.data.get("order")
-            prev_id = order_data.get("prev_id")
-            next_id = order_data.get("next_id")
-            updated_order = order_data.get("updated_order")
-            prev = None
-            next = None
-            if prev_id:
-                prev = (
-                    Category.objects.filter(
-                        id=prev_id, deleted_at__isnull=True
-                    )
-                    .first()
-                    .order
-                )
-            if next_id:
-                next = (
-                    Category.objects.filter(
-                        id=next_id, deleted_at__isnull=True
-                    )
-                    .first()
-                    .order
-                )
-            if (
-                validate_order(prev=prev, next=next, updated=updated_order)
-                is False
-            ):
-                return Response(
-                    {"error": "Invalid order"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            else:
-                update_data["order"] = updated_order
+        if "order" in request.data:
+            nested_order = request.data.get("order")
+            request.data["order"] = nested_order.get("updated_order")
+            request.data["patch_order"] = nested_order
 
         serializer = CategorySerializer(
-            category, data=update_data, partial=True
+            context={"request": request},
+            instance=category,
+            data=request.data,
+            partial=True,
         )
         if serializer.is_valid(raise_exception=True):
             serializer.save()

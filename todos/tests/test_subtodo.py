@@ -1,11 +1,9 @@
 import pytest
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from todos.models import Category, SubTodo, Todo, User
 
-User = get_user_model()
 client = APIClient()
 
 
@@ -17,6 +15,13 @@ def create_user(db):
         password="testpassword",
     )
     return user
+
+
+@pytest.fixture
+def authenticated_client(create_user):
+    client.force_authenticate(user=create_user)
+    yield client
+    client.force_authenticate(user=None)  # logout
 
 
 @pytest.fixture
@@ -57,7 +62,7 @@ def create_todo(db, create_user, create_category):
 
 
 @pytest.mark.django_db
-def test_create_subtodo_success(create_todo):
+def test_create_subtodo_success(create_todo, authenticated_client):
     url = reverse("subtodos")
     data = [
         {
@@ -68,14 +73,14 @@ def test_create_subtodo_success(create_todo):
             "is_completed": False,
         }
     ]
-    response = client.post(url, data, format="json")
+    response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 201
     response_data = response.data[0]  # 리스트의 첫 번째 항목 접근
     assert "id" in response_data
 
 
 @pytest.mark.django_db
-def test_create_subtodo_invalid_order(create_todo):
+def test_create_subtodo_invalid_order(create_todo, authenticated_client):
     SubTodo.objects.create(
         content="Test SubTodo",
         date="2024-08-01",
@@ -93,13 +98,12 @@ def test_create_subtodo_invalid_order(create_todo):
             "is_completed": False,
         }
     ]
-    response = client.post(url, data, format="json")
+    response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
-    assert response.data["error"] == "Invalid order"
 
 
 @pytest.mark.django_db
-def test_create_subtodo_invalid_todo_id():
+def test_create_subtodo_invalid_todo_id(authenticated_client):
     url = reverse("subtodos")
     data = [
         {
@@ -110,7 +114,7 @@ def test_create_subtodo_invalid_todo_id():
             "is_completed": False,
         }
     ]
-    response = client.post(url, data, format="json")
+    response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
 
 
@@ -125,7 +129,7 @@ def test_create_subtodo_invalid_todo_id():
 
 
 @pytest.mark.django_db
-def test_get_subtodos(create_todo):
+def test_get_subtodos(create_todo, authenticated_client):
     url = reverse("subtodos")
     SubTodo.objects.create(
         content="Test SubTodo 1",
@@ -141,13 +145,15 @@ def test_get_subtodos(create_todo):
         order="0|i00000:",
         is_completed=False,
     )
-    response = client.get(url, {"todo_id": create_todo.id}, format="json")
+    response = authenticated_client.get(
+        url, {"todo_id": create_todo.id}, format="json"
+    )
     assert response.status_code == 200
     assert len(response.data) == 2
 
 
 @pytest.mark.django_db
-def test_get_subtodos_ordering(create_todo):
+def test_get_subtodos_ordering(create_todo, authenticated_client):
     url = reverse("subtodos")
     SubTodo.objects.create(
         content="Test SubTodo 1",
@@ -170,7 +176,9 @@ def test_get_subtodos_ordering(create_todo):
         order="0|00000a:",
         is_completed=False,
     )
-    response = client.get(url, {"todo_id": create_todo.id}, format="json")
+    response = authenticated_client.get(
+        url, {"todo_id": create_todo.id}, format="json"
+    )
     assert response.status_code == 200
     assert response.data[0]["order"] == "0|00000a:"
     assert response.data[1]["order"] == "0|hzzzzz:"
@@ -178,7 +186,7 @@ def test_get_subtodos_ordering(create_todo):
 
 
 @pytest.mark.django_db
-def test_get_subtodos_between_dates(create_todo):
+def test_get_subtodos_between_dates(create_todo, authenticated_client):
     url = reverse("subtodos")
     SubTodo.objects.create(
         content="Test SubTodo 1",
@@ -201,7 +209,7 @@ def test_get_subtodos_between_dates(create_todo):
         order="0|i00000:",
         is_completed=False,
     )
-    response = client.get(
+    response = authenticated_client.get(
         url,
         {
             "todo_id": create_todo.id,
@@ -227,7 +235,7 @@ def test_get_subtodos_between_dates(create_todo):
 
 
 @pytest.mark.django_db
-def test_update_subtodo_success(create_todo):
+def test_update_subtodo_success(create_todo, authenticated_client):
     subtodo = SubTodo.objects.create(
         content="Test SubTodo",
         date="2024-08-01",
@@ -241,14 +249,14 @@ def test_update_subtodo_success(create_todo):
         "content": "Updated SubTodo",
         "date": "2024-08-03",
     }
-    response = client.patch(url, data, format="json")
+    response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
     assert response.data["content"] == "Updated SubTodo"
     assert response.data["date"] == "2024-08-03"
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_order(create_todo):
+def test_update_subtodo_invalid_order(create_todo, authenticated_client):
     subtodo = SubTodo.objects.create(
         content="Test SubTodo",
         date="2024-08-01",
@@ -274,13 +282,12 @@ def test_update_subtodo_invalid_order(create_todo):
             "updated_order": "0|ii0000:",
         },
     }
-    response = client.patch(url, data, format="json")
+    response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400
-    assert response.data["error"] == "Invalid order"
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_todo_id(create_todo):
+def test_update_subtodo_invalid_todo_id(create_todo, authenticated_client):
     subtodo = SubTodo.objects.create(
         content="Test SubTodo",
         date="2024-08-01",
@@ -295,27 +302,7 @@ def test_update_subtodo_invalid_todo_id(create_todo):
         "date": "2024-08-03",
         "todo": 999,  # Invalid todo id
     }
-    response = client.patch(url, data, format="json")
-    assert response.status_code == 400
-
-
-@pytest.mark.django_db
-def test_update_subtodo_invalid_user_id(create_todo):
-    subtodo = SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
-        todo=create_todo,
-        order="0|hzzzzz:",
-        is_completed=False,
-    )
-    url = reverse("subtodos")
-    data = {
-        "subtodo_id": subtodo.id,
-        "content": "Updated SubTodo",
-        "date": "2024-08-03",
-        "user_id": 999,  # Invalid user id
-    }
-    response = client.patch(url, data, format="json")
+    response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400
 
 
@@ -329,7 +316,7 @@ def test_update_subtodo_invalid_user_id(create_todo):
 
 
 @pytest.mark.django_db
-def test_delete_subtodo_success(create_todo):
+def test_delete_subtodo_success(create_todo, authenticated_client):
     subtodo = SubTodo.objects.create(
         content="Test SubTodo",
         date="2024-08-01",
@@ -339,7 +326,7 @@ def test_delete_subtodo_success(create_todo):
     )
     url = reverse("subtodos")
     data = {"subtodo_id": subtodo.id}
-    response = client.delete(url, data, format="json")
+    response = authenticated_client.delete(url, data, format="json")
     assert response.status_code == 200
 
     # Check if the subtodo is soft deleted
@@ -351,10 +338,10 @@ def test_delete_subtodo_success(create_todo):
 
 
 @pytest.mark.django_db
-def test_delete_subtodo_invalid_id():
+def test_delete_subtodo_invalid_id(authenticated_client):
     url = reverse("subtodos")
     data = {
         "subtodo_id": 999  # Invalid subtodo id
     }
-    response = client.delete(url, data, format="json")
+    response = authenticated_client.delete(url, data, format="json")
     assert response.status_code == 400
