@@ -1,0 +1,10 @@
+django-extensions
+pyparsing
+pydot
+pygraphviz
+Pillow
+
+#  basic : python manage.py graph_models -a -o myapp_models.png
+#  field : python manage.py graph_models -a -g -o myapp_models.png
+#  specify : python manage.py graph_models myapp1 myapp2 -o myapps_models.png
+#  format : python manage.py graph_models -a -o myapp_models.pdf

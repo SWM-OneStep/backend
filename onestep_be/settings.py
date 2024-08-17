@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -159,7 +160,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 DATABASES = {
     "default": {
-        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
@@ -167,13 +168,13 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     },
     "test": {
-        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": SECRETS.get("TEST_DB_NAME"),
         "USER": SECRETS.get("TEST_DB_USER"),
         "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
         "HOST": SECRETS.get("TEST_DB_HOST"),
         "PORT": SECRETS.get("DB_PORT"),
-    }
+    },
 }
 
 # Add OpenAI API Key
