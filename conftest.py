@@ -2,11 +2,20 @@
 # This file is used to define fixtures that can be used in multiple test files
 
 import pytest
+from faker import Faker
 from rest_framework.test import APIClient
 
 from todos.models import Category, SubTodo, Todo, User
 
 client = APIClient()
+
+fake = Faker()
+
+
+@pytest.fixture(scope="module")
+def invalid_token():
+    response = {"token": "token", "deviceToken": "device_token"}
+    return response
 
 
 @pytest.fixture
@@ -61,3 +70,13 @@ def create_subtodo(db, create_user, create_todo):
         is_completed=False,
     )
     return subtodo
+
+
+@pytest.fixture
+def date():
+    return fake.date_this_year()
+
+
+@pytest.fixture
+def content():
+    return fake.sentence(nb_words=6)

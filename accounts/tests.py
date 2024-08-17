@@ -17,22 +17,6 @@ factory = APIRequestFactory()
 view = UserRetrieveView.as_view()
 
 
-@pytest.fixture(scope="module")
-def invalid_token():
-    response = {"token": "token", "deviceToken": "device_token"}
-    return response
-
-
-@pytest.fixture
-def create_user(db):
-    user = User.objects.create_user(
-        username="testuser",
-        email="testuser@example.com",
-        password="testpassword",
-    )
-    return user
-
-
 @pytest.mark.django_db
 def test_user_info(create_user):
     with patch("accounts.views.UserRetrieveView.permission_classes", new=[]):

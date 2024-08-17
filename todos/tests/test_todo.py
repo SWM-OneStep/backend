@@ -1,35 +1,21 @@
+from datetime import timedelta
+
 import pytest
-from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.test import APIClient
 
 from todos.models import Todo
-
-User = get_user_model()
-client = APIClient()
-
-"""
-======================================
-# Todo Post checklist #
-- correct test
-- order validation
-- start_date and end_date validation
-- category_id validation
-- user_id validation
-======================================
-"""
 
 
 @pytest.mark.django_db
 def test_create_todo_success(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date, content
 ):
     url = reverse("todos")
     data = {
         "user_id": create_user.id,
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-02",
-        "content": "Test Todo",
+        "start_date": date,
+        "end_date": date + timedelta(days=1),
+        "content": content,
         "category_id": create_category.id,
         "order": "0|hzzzzz:",
     }
@@ -40,41 +26,39 @@ def test_create_todo_success(
 
 @pytest.mark.django_db
 def test_create_todo_invalid_order(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     url = reverse("todos")
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date,
+        end_date=date + timedelta(days=1),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     data = {
         "user_id": create_user.id,
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-02",
+        "start_date": date + timedelta(days=2),
+        "end_date": date + timedelta(days=3),
         "content": "Test Todo",
         "category_id": create_category.id,
         "order": "0|hzzzzz:",
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
-    assert (
-        response.data["non_field_errors"][0] == "Order is invalid"
-    )  # Adjust the assertion based on the actual error message
+    assert response.data["non_field_errors"][0] == "Order is invalid"
 
 
 @pytest.mark.django_db
 def test_create_todo_invalid_start_date(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     url = reverse("todos")
     data = {
         "user_id": create_user.id,
-        "start_date": "2024-08-02",
-        "end_date": "2024-08-01",
+        "start_date": date + timedelta(days=2),
+        "end_date": date + timedelta(days=1),
         "content": "Test Todo",
         "category_id": create_category.id,
         "order": "0|hzzzzz:",
@@ -85,12 +69,12 @@ def test_create_todo_invalid_start_date(
 
 @pytest.mark.django_db
 def test_create_todo_valid_start_date(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     url = reverse("todos")
     data = {
         "user_id": create_user.id,
-        "start_date": "2024-08-02",
+        "start_date": date + timedelta(days=2),
         "content": "Test Todo",
         "category_id": create_category.id,
         "order": "0|hzzzzz:",
@@ -100,12 +84,14 @@ def test_create_todo_valid_start_date(
 
 
 @pytest.mark.django_db
-def test_create_todo_invalid_category_id(create_user, authenticated_client):
+def test_create_todo_invalid_category_id(
+    create_user, authenticated_client, date
+):
     url = reverse("todos")
     data = {
         "user_id": create_user.id,
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-02",
+        "start_date": date + timedelta(days=1),
+        "end_date": date + timedelta(days=2),
         "content": "Test Todo",
         "category_id": 999,
         "order": "0|hzzzzz:",
@@ -115,12 +101,14 @@ def test_create_todo_invalid_category_id(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_create_todo_invalid_user_id(authenticated_client, create_category):
+def test_create_todo_invalid_user_id(
+    authenticated_client, create_category, date
+):
     url = reverse("todos")
     data = {
         "user_id": 999,
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-02",
+        "start_date": date + timedelta(days=1),
+        "end_date": date + timedelta(days=2),
         "content": "Test Todo",
         "category_id": create_category.id,
         "order": "0|hzzzzz:",
@@ -129,31 +117,21 @@ def test_create_todo_invalid_user_id(authenticated_client, create_category):
     assert response.status_code == 400
 
 
-"""
-======================================
-# Todo Get checklist #
-- correct test
-- right order
-- get between start_date and end_date
-======================================
-"""
-
-
 @pytest.mark.django_db
-def test_get_todos(create_user, create_category, authenticated_client):
+def test_get_todos(create_user, create_category, authenticated_client, date):
     url = reverse("todos")
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 1",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 2",
         category_id=create_category,
         order="0|i00000:",
@@ -167,29 +145,29 @@ def test_get_todos(create_user, create_category, authenticated_client):
 
 @pytest.mark.django_db
 def test_get_todos_ordering(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     url = reverse("todos")
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 1",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 2",
         category_id=create_category,
         order="0|i00000:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 3",
         category_id=create_category,
         order="0|a0000a:",
@@ -206,29 +184,29 @@ def test_get_todos_ordering(
 
 @pytest.mark.django_db
 def test_get_todos_between_dates(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     url = reverse("todos")
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-02",
-        end_date="2024-08-04",
+        start_date=date + timedelta(days=2),
+        end_date=date + timedelta(days=4),
         content="Test Todo 1",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-04",
-        end_date="2024-08-06",
+        start_date=date + timedelta(days=4),
+        end_date=date + timedelta(days=6),
         content="Test Todo 2",
         category_id=create_category,
         order="0|i0000i:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-06",
-        end_date="2024-08-08",
+        start_date=date + timedelta(days=6),
+        end_date=date + timedelta(days=8),
         content="Test Todo 3",
         category_id=create_category,
         order="0|i00000:",
@@ -237,8 +215,8 @@ def test_get_todos_between_dates(
         url,
         {
             "user_id": create_user.id,
-            "start_date": "2024-08-03",
-            "end_date": "2024-08-06",
+            "start_date": date + timedelta(days=3),
+            "end_date": date + timedelta(days=6),
         },
         format="json",
     )
@@ -248,29 +226,29 @@ def test_get_todos_between_dates(
 
 @pytest.mark.django_db
 def test_get_todos_between_dates2(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     url = reverse("todos")
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-02",
-        end_date="2024-08-04",
+        start_date=date + timedelta(days=2),
+        end_date=date + timedelta(days=4),
         content="Test Todo 1",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-04",
-        end_date="2024-08-06",
+        start_date=date + timedelta(days=4),
+        end_date=date + timedelta(days=6),
         content="Test Todo 2",
         category_id=create_category,
         order="0|i0000i:",
     )
     Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-07",
-        end_date="2024-08-08",
+        start_date=date + timedelta(days=7),
+        end_date=date + timedelta(days=8),
         content="Test Todo 3",
         category_id=create_category,
         order="0|i00000:",
@@ -279,8 +257,8 @@ def test_get_todos_between_dates2(
         url,
         {
             "user_id": create_user.id,
-            "start_date": "2024-08-03",
-            "end_date": "2024-08-06",
+            "start_date": date + timedelta(days=3),
+            "end_date": date + timedelta(days=6),
         },
         format="json",
     )
@@ -288,64 +266,52 @@ def test_get_todos_between_dates2(
     assert len(response.data) == 2
 
 
-"""
-======================================
-# Todo Patch checklist #
-- correct test
-- order validation
-- start_date and end_date validation
-- category_id validation
-- user_id validation
-======================================
-"""
-
-
 @pytest.mark.django_db
 def test_update_todo_success(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
     )
-    url = reverse("todos")  # URL name for the TodoView patch method
+    url = reverse("todos")
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-03",
+        "start_date": date + timedelta(days=1),
+        "end_date": date + timedelta(days=3),
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
     assert response.data["content"] == "Updated Todo"
-    assert response.data["end_date"] == "2024-08-03"
+    assert response.data["end_date"] == str(data["end_date"])
 
 
 @pytest.mark.django_db
 def test_update_todo_success_order(
-    create_user, create_category, authenticated_client
+    create_user, create_category, authenticated_client, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 2",
         category_id=create_category,
         order="0|i00000:",
     )
-    url = reverse("todos")  # URL name for the TodoView patch method
+    url = reverse("todos")
     data = {
         "todo_id": todo.id,
         "order": {
@@ -359,21 +325,22 @@ def test_update_todo_success_order(
     assert response.data["order"] == "0|j0000i:"
 
 
+@pytest.mark.django_db
 def test_update_todo_invalid_order(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo 2",
         category_id=create_category,
         order="0|i0000h:",
@@ -382,8 +349,8 @@ def test_update_todo_invalid_order(
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-03",
+        "start_date": date + timedelta(days=1),
+        "end_date": date + timedelta(days=3),
         "order": {
             "prev_id": None,
             "next_id": todo2.id,
@@ -396,12 +363,12 @@ def test_update_todo_invalid_order(
 
 @pytest.mark.django_db
 def test_update_todo_invalid_start_date(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
@@ -410,25 +377,25 @@ def test_update_todo_invalid_start_date(
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": "2024-08-02",
-        "end_date": "2024-08-01",
+        "start_date": date + timedelta(days=2),
+        "end_date": date + timedelta(days=1),
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400
     assert (
         response.data["non_field_errors"][0]
         == "Start date should be less than end date"
-    )  # Adjust the assertion based on the actual error message
+    )
 
 
 @pytest.mark.django_db
 def test_update_todo_invalid_category_id(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
@@ -437,8 +404,8 @@ def test_update_todo_invalid_category_id(
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-03",
+        "start_date": date + timedelta(days=1),
+        "end_date": date + timedelta(days=3),
         "category_id": 999,
     }
     response = authenticated_client.patch(url, data, format="json")
@@ -447,12 +414,12 @@ def test_update_todo_invalid_category_id(
 
 @pytest.mark.django_db
 def test_update_todo_invalid_user_id(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
@@ -461,31 +428,22 @@ def test_update_todo_invalid_user_id(
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": "2024-08-01",
-        "end_date": "2024-08-03",
+        "start_date": date + timedelta(days=1),
+        "end_date": date + timedelta(days=3),
         "user_id": 999,
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400
 
 
-"""
-======================================
-# Todo Delete checklist #
-- correct test
-- todo_id validation
-======================================
-"""
-
-
 @pytest.mark.django_db
 def test_delete_todo_success(
-    authenticated_client, create_category, create_user
+    authenticated_client, create_category, create_user, date
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-02",
+        start_date=date + timedelta(days=1),
+        end_date=date + timedelta(days=2),
         content="Test Todo",
         category_id=create_category,
         order="0|hzzzzz:",
