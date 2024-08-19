@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,6 +27,8 @@ class TestView(APIView):
 
 class GoogleLogin(APIView):
     google_client_id = settings.SECRETS.get("GCID")
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     def post(self, request):
         token = request.data.get("token")
