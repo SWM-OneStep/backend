@@ -184,4 +184,4 @@ jobs:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ secrets.ECS_SERVICE_NAME_PROD }}
           cluster: ${{ secrets.ECS_CLUSTER_NAME_PROD }}
-          wait-for-service-stability: true
+          wait-for-service-stability: false
