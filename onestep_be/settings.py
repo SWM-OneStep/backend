@@ -159,7 +159,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 DATABASES = {
     "default": {
-        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
@@ -167,13 +167,13 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     },
     "test": {
-        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": SECRETS.get("TEST_DB_NAME"),
         "USER": SECRETS.get("TEST_DB_USER"),
         "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
         "HOST": SECRETS.get("TEST_DB_HOST"),
         "PORT": SECRETS.get("DB_PORT"),
-    }
+    },
 }
 
 # Add OpenAI API Key
@@ -244,4 +244,18 @@ sentry_sdk.init(
             cache_spans=False,
         ),
     ],
+)
+
+sentry_sdk.metrics.incr(key="api_calls", value=1, tags={"api": "third_party"})
+
+sentry_sdk.metrics.distribution(
+    key="processing_time",
+    value=0.002,
+    unit="second",
+    tags={"task": "example_task"},
+)
+sentry_sdk.metrics.gauge(
+    key="cpu_usage",
+    value=94,
+    unit="percent",
 )

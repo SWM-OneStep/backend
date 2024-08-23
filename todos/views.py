@@ -4,7 +4,7 @@ import json
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,10 +21,11 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
+from todos.utils import sentry_data
 
 
 class TodoView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     queryset = Todo.objects.all()
 
     @swagger_auto_schema(
@@ -101,6 +102,7 @@ class TodoView(APIView):
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         user_id = request.GET.get("user_id")
+
         if user_id is None:
             return Response(
                 {"error": "user_id must be provided"},
@@ -122,6 +124,7 @@ class TodoView(APIView):
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
         serializer = GetTodoSerializer(todos, many=True)
+        sentry_data("GET", request.path, status.HTTP_200_OK, request.headers)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -163,7 +166,6 @@ class TodoView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
         )
