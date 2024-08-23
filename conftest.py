@@ -80,3 +80,18 @@ def date():
 @pytest.fixture
 def content():
     return fake.sentence(nb_words=6)
+
+
+@pytest.fixture
+def order():
+    orders = ["0|azzzzz:", "0|hzzzzz:", "0|lzzzzz:"]
+
+    def get_order(index):
+        return orders[index]
+
+    return get_order
+
+
+@pytest.fixture
+def color():
+    return fake.color()

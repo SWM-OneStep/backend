@@ -16,14 +16,16 @@ from todos.models import SubTodo
 
 
 @pytest.mark.django_db
-def test_create_subtodo_success(create_todo, authenticated_client):
+def test_create_subtodo_success(
+    create_todo, authenticated_client, content, date, order
+):
     url = reverse("subtodos")
     data = [
         {
-            "content": "Test SubTodo",
-            "date": "2024-08-02",
+            "content": content,
+            "date": date,
             "todo": create_todo.id,
-            "order": "0|hzzzzz:",
+            "order": order(0),
             "is_completed": False,
         }
     ]
@@ -34,21 +36,23 @@ def test_create_subtodo_success(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_create_subtodo_invalid_order(create_todo, authenticated_client):
+def test_create_subtodo_invalid_order(
+    create_todo, authenticated_client, content, date, order
+):
     SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     url = reverse("subtodos")
     data = [
         {
-            "content": "Test SubTodo2",
-            "date": "2024-08-01",
+            "content": content,
+            "date": date,
             "todo": create_todo.id,
-            "order": "0|hzzzzz:",
+            "order": order(0),
             "is_completed": False,
         }
     ]
@@ -57,14 +61,16 @@ def test_create_subtodo_invalid_order(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_create_subtodo_invalid_todo_id(authenticated_client):
+def test_create_subtodo_invalid_todo_id(
+    authenticated_client, content, date, order
+):
     url = reverse("subtodos")
     data = [
         {
-            "content": "Test SubTodo",
-            "date": "2024-08-01",
+            "content": content,
+            "date": date,
             "todo": 999,  # Invalid todo id
-            "order": "0|hzzzzz:",
+            "order": order(0),
             "is_completed": False,
         }
     ]
@@ -83,20 +89,20 @@ def test_create_subtodo_invalid_todo_id(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_get_subtodos(create_todo, authenticated_client):
+def test_get_subtodos(create_todo, authenticated_client, content, date, order):
     url = reverse("subtodos")
     SubTodo.objects.create(
-        content="Test SubTodo 1",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     SubTodo.objects.create(
-        content="Test SubTodo 2",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|i00000:",
+        order=order(1),
         is_completed=False,
     )
     response = authenticated_client.get(
@@ -107,60 +113,64 @@ def test_get_subtodos(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_get_subtodos_ordering(create_todo, authenticated_client):
+def test_get_subtodos_ordering(
+    create_todo, authenticated_client, content, date, order
+):
     url = reverse("subtodos")
     SubTodo.objects.create(
-        content="Test SubTodo 1",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(2),
         is_completed=False,
     )
     SubTodo.objects.create(
-        content="Test SubTodo 2",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|i00000:",
+        order=order(1),
         is_completed=False,
     )
     SubTodo.objects.create(
-        content="Test SubTodo 3",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|00000a:",
+        order=order(0),
         is_completed=False,
     )
     response = authenticated_client.get(
         url, {"todo_id": create_todo.id}, format="json"
     )
     assert response.status_code == 200
-    assert response.data[0]["order"] == "0|00000a:"
-    assert response.data[1]["order"] == "0|hzzzzz:"
-    assert response.data[2]["order"] == "0|i00000:"
+    assert response.data[0]["order"] == order(0)
+    assert response.data[1]["order"] == order(1)
+    assert response.data[2]["order"] == order(2)
 
 
 @pytest.mark.django_db
-def test_get_subtodos_between_dates(create_todo, authenticated_client):
+def test_get_subtodos_between_dates(
+    create_todo, authenticated_client, content, date, order
+):
     url = reverse("subtodos")
     SubTodo.objects.create(
-        content="Test SubTodo 1",
+        content=content,
         date="2024-08-02",
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     SubTodo.objects.create(
-        content="Test SubTodo 2",
+        content=content,
         date="2024-08-04",
         todo=create_todo,
-        order="0|i0000i:",
+        order=order(1),
         is_completed=False,
     )
     SubTodo.objects.create(
-        content="Test SubTodo 3",
+        content=content,
         date="2024-08-06",
         todo=create_todo,
-        order="0|i00000:",
+        order=order(2),
         is_completed=False,
     )
     response = authenticated_client.get(
@@ -189,12 +199,14 @@ def test_get_subtodos_between_dates(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_update_subtodo_success(create_todo, authenticated_client):
+def test_update_subtodo_success(
+    create_todo, authenticated_client, content, date, order
+):
     subtodo = SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     url = reverse("subtodos")  # URL name for the SubTodoView patch method
@@ -210,19 +222,21 @@ def test_update_subtodo_success(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_order(create_todo, authenticated_client):
+def test_update_subtodo_invalid_order(
+    create_todo, authenticated_client, content, date, order
+):
     subtodo = SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     subtodo2 = SubTodo.objects.create(
-        content="Test SubTodo 2",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|i00000:",
+        order=order(1),
         is_completed=False,
     )
     url = reverse("subtodos")
@@ -233,7 +247,7 @@ def test_update_subtodo_invalid_order(create_todo, authenticated_client):
         "order": {
             "prev_id": None,
             "next_id": subtodo2.id,
-            "updated_order": "0|ii0000:",
+            "updated_order": order(2),
         },
     }
     response = authenticated_client.patch(url, data, format="json")
@@ -241,12 +255,14 @@ def test_update_subtodo_invalid_order(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_todo_id(create_todo, authenticated_client):
+def test_update_subtodo_invalid_todo_id(
+    create_todo, authenticated_client, content, date, order
+):
     subtodo = SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     url = reverse("subtodos")
@@ -270,12 +286,14 @@ def test_update_subtodo_invalid_todo_id(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_delete_subtodo_success(create_todo, authenticated_client):
+def test_delete_subtodo_success(
+    create_todo, authenticated_client, content, date, order
+):
     subtodo = SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
+        content=content,
+        date=date,
         todo=create_todo,
-        order="0|hzzzzz:",
+        order=order(0),
         is_completed=False,
     )
     url = reverse("subtodos")
@@ -292,7 +310,7 @@ def test_delete_subtodo_success(create_todo, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_delete_subtodo_invalid_id(authenticated_client):
+def test_delete_subtodo_invalid_id(authenticated_client, content, date, order):
     url = reverse("subtodos")
     data = {
         "subtodo_id": 999  # Invalid subtodo id

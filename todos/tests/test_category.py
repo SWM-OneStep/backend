@@ -14,13 +14,15 @@ from todos.models import Category
 
 
 @pytest.mark.django_db
-def test_create_category_success(create_user, authenticated_client):
+def test_create_category_success(
+    create_user, authenticated_client, content, order, color
+):
     url = reverse("category")
     data = {
         "user_id": create_user.id,
-        "title": "Test Category",
-        "color": "#FFFFFF",
-        "order": "0|hzzzzz:",
+        "title": content,
+        "color": color,
+        "order": order(0),
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 201
@@ -28,32 +30,36 @@ def test_create_category_success(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_create_category_invalid_order(create_user, authenticated_client):
+def test_create_category_invalid_order(
+    create_user, authenticated_client, content, order, color
+):
     url = reverse("category")
     Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|hzzzzz:",
+        title=content,
+        color=color,
+        order=order(0),
     )
     data = {
         "user_id": create_user.id,
-        "title": "Test Category2",
-        "color": "#FFFFFF",
-        "order": "0|hzzzzz:",
+        "title": content,
+        "color": color,
+        "order": order(0),
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
-def test_create_category_invalid_user_id(authenticated_client):
+def test_create_category_invalid_user_id(
+    authenticated_client, content, order, color
+):
     url = reverse("category")
     data = {
         "user_id": 999,
-        "title": "Test Category",
-        "color": "#FFFFFF",
-        "order": "0|hzzzzz:",
+        "title": content,
+        "color": color,
+        "order": order(0),
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
@@ -69,19 +75,21 @@ def test_create_category_invalid_user_id(authenticated_client):
 
 
 @pytest.mark.django_db
-def test_get_category(create_user, authenticated_client):
+def test_get_category(
+    create_user, authenticated_client, content, order, color
+):
     url = reverse("category")
     Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|hzzzzz:",
+        title=content,
+        color=color,
+        order=order(0),
     )
     Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|i00000:",
+        title=content,
+        color=color,
+        order=order(1),
     )
     response = authenticated_client.get(
         url, {"user_id": create_user.id}, format="json"
@@ -91,33 +99,35 @@ def test_get_category(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_get_category_ordering(create_user, authenticated_client):
+def test_get_category_ordering(
+    create_user, authenticated_client, content, order, color
+):
     url = reverse("category")
     Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|hzzzzz:",
+        title=content,
+        color=color,
+        order=order(2),
     )
     Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|a0000a:",
+        title=content,
+        color=color,
+        order=order(1),
     )
     Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|i00000:",
+        title=content,
+        color=color,
+        order=order(0),
     )
     response = authenticated_client.get(
         url, {"user_id": create_user.id}, format="json"
     )
     assert response.status_code == 200
-    assert response.data[0]["order"] == "0|a0000a:"
-    assert response.data[1]["order"] == "0|hzzzzz:"
-    assert response.data[2]["order"] == "0|i00000:"
+    assert response.data[0]["order"] == order(0)
+    assert response.data[1]["order"] == order(1)
+    assert response.data[2]["order"] == order(2)
 
 
 """
@@ -132,12 +142,14 @@ def test_get_category_ordering(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_update_category_success(create_user, authenticated_client):
+def test_update_category_success(
+    create_user, authenticated_client, content, order, color
+):
     category = Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|i00000:",
+        title=content,
+        color=color,
+        order=order(0),
     )
     url = reverse("category")  # URL name for the categoryView patch method
     data = {
@@ -150,12 +162,14 @@ def test_update_category_success(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_update_category_invalid_user_id(create_user, authenticated_client):
+def test_update_category_invalid_user_id(
+    create_user, authenticated_client, content, order, color
+):
     category = Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|i00000:",
+        title=content,
+        color=color,
+        order=order(0),
     )
     url = reverse("category")
     data = {"category_id": category.id, "user_id": 999}
@@ -173,12 +187,14 @@ def test_update_category_invalid_user_id(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_delete_category_success(create_user, authenticated_client):
+def test_delete_category_success(
+    create_user, authenticated_client, content, order, color
+):
     category = Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|i00000:",
+        title=content,
+        color=color,
+        order=order(0),
     )
     url = reverse("category")
     data = {"category_id": category.id}
@@ -194,7 +210,9 @@ def test_delete_category_success(create_user, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_delete_category_invalid_id(authenticated_client):
+def test_delete_category_invalid_id(
+    authenticated_client, content, order, color
+):
     url = reverse("category")
     data = {"category_id": 999}
     response = authenticated_client.delete(url, data, format="json")
