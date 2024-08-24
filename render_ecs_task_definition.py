@@ -21,7 +21,7 @@ def replace_ecs_task_definition():
     global key_map
     key_map = {
         "AWS_ACCOUNT_ID": args.aws_account_id,
-        "AWS_REGION_NAME": args.aws_region,
+        "AWS_REGION": args.aws_region,
         "AWS_REGION_NAME": args.aws_region_name,
         "ECR_REPOSITORY_NAME": args.ecr_repository_name,
         "AWS_SECRET_NAME": args.aws_secret_name,
@@ -32,21 +32,38 @@ def replace_ecs_task_definition():
     
 
     def render_ecs_task_definition(obj):
-        print(obj)
         if isinstance(obj, dict):
             return {k: render_ecs_task_definition(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [render_ecs_task_definition(v) for v in obj]
-        elif isinstance(obj, str) and obj.startswith("${") and obj.endswith("}"):
-            env_var = obj.strip()[9:-1] # remove ${secrets.} from string
-            return key_map.get(env_var)
+        elif isinstance(obj, str) and "$" in obj:
+            replace_map = dict()
+            env_var = obj.replace(" ", "").split("${{")
+            env_real_var = []
+            for ev in env_var:
+                env_real_var.append(ev.split("}}")[0])
+        
+            for erv in env_real_var:
+                if not erv.startswith("secrets"):
+                    continue
+                secret_value = erv.replace("}}", "").split(".")
+                category, name = secret_value[0], secret_value[1]
+                if category != 'secrets':
+                    continue
+                replaced_name = key_map.get(name)
+                replace_map[name] = replaced_name
+
+            for k, v in replace_map.items():
+                replaced_string = "${{ secrets." + k + " }}"
+                obj = obj.replace(replaced_string, v)
+            
+            return obj
         return obj
 
     task_definition = render_ecs_task_definition(task_definition)
     with open('ecs-task.json', 'w') as file:
-            json.dump(task_definition, file, indent=2)
+        json.dump(task_definition, file, indent=2)
 
 
 if __name__ == "__main__":
     result = replace_ecs_task_definition()
-    print("----result-----\n", result)

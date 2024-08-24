@@ -2,7 +2,7 @@
   "containerDefinitions": [
     {
       "name": "onestep-fargate",
-      "image": null,
+      "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}",
       "cpu": 0,
       "portMappings": [
         {
@@ -24,23 +24,23 @@
       "environment": [
         {
           "name": "AWS_REGION_NAME",
-          "value": null
+          "value": "${{ secrets.AWS_REGION }}"
         },
         {
           "name": "AWS_SECRET_NAME",
-          "value": null
+          "value": "${{ secrets.AWS_SECRET_NAME }}"
         },
         {
           "name": "AWS_ACCESS_KEY_ID",
-          "value": null
+          "value": "${{ secrets.AWS_ACCESS_KEY_ID }}"
         },
         {
           "name": "AWS_SECRET_ACCESS_KEY",
-          "value": null
+          "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         },
         {
           "name": "AWS_SECRET_NAME_PROD",
-          "value": null
+          "value": "${{ secrets.AWS_SECRET_NAME_PROD }}"
         }
       ],
       "environmentFiles": [],
@@ -52,7 +52,7 @@
         "options": {
           "awslogs-group": "/ecs/onestep-prod-fargate2",
           "awslogs-create-group": "true",
-          "awslogs-region": null,
+          "awslogs-region": "${{ secrets.AWS_REGION }}",
           "awslogs-stream-prefix": "ecs"
         },
         "secretOptions": []
@@ -61,8 +61,8 @@
     }
   ],
   "family": "onestep-prod-fargate2",
-  "taskRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
-  "executionRoleArn": "arn:aws:iam::637423471998:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
   "volumes": [],
   "status": "ACTIVE",
@@ -96,19 +96,14 @@
     }
   ],
   "placementConstraints": [],
-  "compatibilities": [
-    "EC2",
-    "FARGATE"
-  ],
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "compatibilities": ["EC2", "FARGATE"],
+  "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
   "memory": "3072",
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
     "operatingSystemFamily": "LINUX"
   },
-  "registeredBy": "arn:aws:iam::637423471998:root",
+  "registeredBy": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:root",
   "tags": []
 }
