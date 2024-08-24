@@ -11,7 +11,6 @@ from rest_framework.test import (
 
 from accounts.views import UserRetrieveView
 
-client = APIClient()
 User = get_user_model()
 factory = APIRequestFactory()
 view = UserRetrieveView.as_view()
