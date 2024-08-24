@@ -4,7 +4,7 @@ import json
 
 def replace_ecs_task_definition():
 
-    with open('ecs-task.json', 'r') as file:
+    with open('ecs-task-def.json', 'r') as file:
         task_definition = json.load(file)
 
     parser = argparse.ArgumentParser()
@@ -61,7 +61,7 @@ def replace_ecs_task_definition():
         return obj
 
     task_definition = render_ecs_task_definition(task_definition)
-    with open('ecs-task.json', 'w') as file:
+    with open('ecs-task-def.json', 'w') as file:
         json.dump(task_definition, file, indent=2)
 
 
