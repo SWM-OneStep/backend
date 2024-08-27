@@ -8,7 +8,7 @@ SECRETS = eval(get_secret(prod=True))
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": 'dj_db_conn_pool.backends.mysql',
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
