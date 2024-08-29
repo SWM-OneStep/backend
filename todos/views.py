@@ -98,6 +98,8 @@ class TodoView(APIView):
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
         """  # noqa: E501
+        print("request.auth\n", request.auth)
+        print("request.user\n", request.user)
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         user_id = request.GET.get("user_id")
