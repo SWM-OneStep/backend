@@ -7,7 +7,6 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.models import Device
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
 
@@ -44,7 +43,6 @@ class GoogleLogin(APIView):
                 user, _ = User.objects.get_or_create(
                     username=email, password=""
                 )
-                Device.objects.get_or_create(user_id=user, token=device_token)
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
                     {
