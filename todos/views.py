@@ -4,7 +4,7 @@ import json
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,10 +21,11 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
+from todos.utils import get_planner_system_prompt
 
 
 class TodoView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     queryset = Todo.objects.all()
 
     @swagger_auto_schema(
@@ -564,7 +565,7 @@ class InboxView(APIView):
 
 
 class RecommendSubTodo(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
@@ -580,45 +581,49 @@ class RecommendSubTodo(APIView):
         operation_summary="Recommend subtodo",
         responses={200: SubTodoSerializer},
     )
-    def get(self, request):
+    def post(self, request):
         """
         - 이 함수는 sub todo를 추천하는 함수입니다.
-        - 입력 : todo_id, recommend_category
+        - 입력 : todo_id, additional_info(option)
         - todo_id에 해당하는 todo_id 의 Contents 를 바탕으로 sub todo를 추천합니다.
-        - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
-        - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
+        - 결과로 나올 수 있는 값으로는 question, answer, invalid content 가 있습니다.
+        - question 은 sub todo 를 나눌 때 필요한 정보가 부족한 경우입니다.
+            따라서 추가적인 질문이 content 에 포함됩니다.
+        - additional_info 의 형태는 다음과 같습니다.
+            [
+                {
+                    "question" : "",
+                    "answer" : ""
+                },
+                ...
+            ]
         """  # noqa: E501
-        todo_id = request.GET.get("todo_id")
+        todo_id = request.data.get("todo_id")
+        additional_info = request.data.get("additional_info", None)
+
         try:
             todo = Todo.objects.get_with_id(id=todo_id)
+            user_prompt = "<user_prompt>" + todo.content + "</user_prompt>"
+            if additional_info is not None:
+                user_prompt += "\n<user_question>"
+                for i in range(len(additional_info)):
+                    user_prompt += (
+                        "\nQuestion : "
+                        + additional_info[i]["question"]
+                        + "\nUser Answer : "
+                        + additional_info[i]["answer"]
+                    )
+                user_prompt += "\n</user_question>"
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
-                        "content": """너는 퍼스널 매니저야. 
-                    너가 하는 일은 이 사람이 할 이야기를 듣고 약 1시간 정도면 끝낼 수 있도록 작업을 나눠주는 식으로 진행할 거야.
-                    아래는 너가 나눠줄 작업 형식이야.
-                    { id : 1, content: "3학년 2학기 운영체제 중간고사 준비", start_date="2024-09-01", end_date="2024-09-24"}
-                    이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
-                    Output a JSON object structured like:
-                    {id, content, start_date, end_date, category_id, order, is_completed, children : [
-                    {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id)}]}
-                    [조건] 
-                    - date 는 부모의 start_date를 따를 것
-                    - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
-                    - 언어는 주어진 todo content의 언어에 따를 것
-                    """,  # noqa: E501
+                        "content": get_planner_system_prompt(),
                     },
                     {
                         "role": "user",
-                        "content": f"id: {todo.id}, \
-                            content: {todo.content}, \
-                            start_date: {todo.start_date}, \
-                            end_date: {todo.end_date}, \
-                            category_id: {todo.category_id}, \
-                            order: {todo.order}, \
-                            is_completed: {todo.is_completed}",
+                        "content": user_prompt,
                     },
                 ],
                 response_format={"type": "json_object"},
@@ -632,7 +637,6 @@ class RecommendSubTodo(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-
         return Response(
             json.loads(completion.choices[0].message.content),
             status=status.HTTP_200_OK,
