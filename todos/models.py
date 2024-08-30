@@ -149,6 +149,7 @@ class Category(TimeStamp):
     objects = TodosManager()
 
 
+# Prompt Models
 class BasePrompt(models.Model):
     todo_id = models.ForeignKey(Todo, on_delete=models.PROTECT)
     user_id = models.ForeignKey(User, on_delete=models.PROTECT)
@@ -158,9 +159,9 @@ class BasePrompt(models.Model):
         abstract = True
 
 
-class GeneratePrompt(BasePrompt):
+class ValidPrompt(BasePrompt):
     id = models.AutoField(primary_key=True)
-    prompt_content = models.TextField(max_length=255)
+    content = models.TextField(max_length=255)
     is_selected = models.BooleanField(default=False)
 
 
