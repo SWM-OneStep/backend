@@ -150,9 +150,12 @@ class Category(TimeStamp):
 
 
 class BasePrompt(models.Model):
-    todo_id = models.ForeignKey(Todo, on_delete=models.CASCADE)
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    todo_id = models.ForeignKey(Todo, on_delete=models.PROTECT)
+    user_id = models.ForeignKey(User, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 
 class GeneratePrompt(BasePrompt):
