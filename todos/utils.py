@@ -1,5 +1,6 @@
 from todos.lexorank import LexoRank
 
+
 def validate_lexo_order(prev, next, updated):
     updated_lexo = LexoRank(updated)
     if prev is None and next is None:
@@ -15,6 +16,9 @@ def validate_lexo_order(prev, next, updated):
     else:
         prev_lexo = LexoRank(prev)
         next_lexo = LexoRank(next)
-        if prev_lexo.compare_to(updated_lexo) >= 0 or next_lexo.compare_to(updated_lexo) <= 0:
+        if (
+            prev_lexo.compare_to(updated_lexo) >= 0
+            or next_lexo.compare_to(updated_lexo) <= 0
+        ):
             return False
     return True
