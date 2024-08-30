@@ -147,3 +147,26 @@ class Category(TimeStamp):
     order = models.CharField(max_length=255, null=True)
 
     objects = TodosManager()
+
+
+class BasePrompt(models.Model):
+    todo_id = models.ForeignKey(Todo, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GeneratePrompt(BasePrompt):
+    id = models.AutoField(primary_key=True)
+    prompt_content = models.TextField(max_length=255)
+    is_selected = models.BooleanField(default=False)
+
+
+class QuestionPrompt(BasePrompt):
+    id = models.AutoField(primary_key=True)
+    question = models.TextField(max_length=255)
+    answer = models.TextField(max_length=255)
+
+
+class InvalidContentPrompt(BasePrompt):
+    id = models.AutoField(primary_key=True)
+    reason = models.TextField(max_length=255)
