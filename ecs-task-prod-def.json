@@ -28,7 +28,7 @@
         },
         {
           "name": "AWS_REGION_NAME",
-          "value": "${{ secrests.AWS_REGION }}"
+          "value": "${{ secrets.AWS_REGION }}"
         },
         {
           "name": "AWS_SECRET_NAME",
