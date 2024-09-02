@@ -9,8 +9,8 @@ def replace_ecs_task_definition():
     file_parser_args = file_parser.parse_args()
     is_prod = file_parser_args.is_prod
 
-    if is_prod == "true":
-        file_name = "ecs-task-def-prod.json"
+    if is_prod:
+        file_name = "ecs-task-prod-def.json"
     else:
         file_name = "ecs-task-def.json"
 
