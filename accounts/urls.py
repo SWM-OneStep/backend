@@ -1,9 +1,14 @@
-from django.contrib import admin
 from django.urls import path
-from accounts.views import *
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
+)
+
+from accounts.views import (
+    AndroidClientView,
+    GoogleLogin,
+    TestView,
+    UserRetrieveView,
 )
 
 urlpatterns = [
