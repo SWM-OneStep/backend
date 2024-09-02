@@ -2,7 +2,7 @@
   "containerDefinitions": [
     {
       "name": "onestep-prod",
-      "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:${{ github.sha }}",
+      "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME }}:${{ github.sha }}",
       "cpu": 0,
       "portMappings": [
         {
