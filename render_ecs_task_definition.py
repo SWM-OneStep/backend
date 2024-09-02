@@ -3,8 +3,18 @@ import json
 
 
 def replace_ecs_task_definition():
+    
+    file_parser = argparse.ArgumentParser()
+    file_parser.add_argument("--is_prod", type=str)
+    args = file_parser.parse_args()
+    is_prod = args.is_prod
 
-    with open('ecs-task-def.json', 'r') as file:
+    if is_prod == "true":
+        file_name = "ecs-task-def-prod.json"
+    else:
+        file_name = "ecs-task-def.json"
+
+    with open(file_name, 'r') as file:
         task_definition = json.load(file)
 
     parser = argparse.ArgumentParser()
