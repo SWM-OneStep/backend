@@ -23,9 +23,6 @@ def replace_ecs_task_definition():
     else:
         file_name = "ecs-task-def.json"
 
-    print("is_prod", is_prod)
-    print("file_name", file_name)
-
     with open(file_name, 'r') as file:
         task_definition = json.load(file)
 
@@ -35,6 +32,7 @@ def replace_ecs_task_definition():
         "AWS_REGION": args.aws_region,
         "AWS_REGION_NAME": args.aws_region_name,
         "ECR_REPOSITORY_NAME": args.ecr_repository_name,
+        "ECR_REPOSITORY_NAME_PROD": args.ecr_repository_name,
         "AWS_SECRET_NAME": args.aws_secret_name,
         "AWS_ACCESS_KEY_ID": args.aws_access_key_id,
         "AWS_SECRET_ACCESS_KEY": args.aws_secret_access_key,
@@ -67,7 +65,6 @@ def replace_ecs_task_definition():
             for k, v in replace_map.items():
                 replaced_string = "${{ secrets." + k + " }}"
                 obj = obj.replace(replaced_string, v)
-                print("obj", obj)
             
             return obj
         return obj
