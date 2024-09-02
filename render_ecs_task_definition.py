@@ -5,7 +5,7 @@ import json
 def replace_ecs_task_definition():
     
     file_parser = argparse.ArgumentParser()
-    file_parser.add_argument("--is_prod", type=str)
+    file_parser.add_argument("--is_prod", type=bool)
     file_parser_args = file_parser.parse_args()
     is_prod = file_parser_args.is_prod
 
