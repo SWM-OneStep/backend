@@ -613,6 +613,7 @@ class RecommendSubTodo(APIView):
                         + "\nUser Answer : "
                         + additional_info[i]["answer"]
                     )
+
                 user_prompt += "\n</user_question>"
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",

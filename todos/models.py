@@ -159,18 +159,18 @@ class BasePrompt(models.Model):
         abstract = True
 
 
-class ValidPrompt(BasePrompt):
+class GeneratedSubTodo(BasePrompt):
     id = models.AutoField(primary_key=True)
     content = models.TextField(max_length=255)
     is_selected = models.BooleanField(default=False)
 
 
-class QuestionPrompt(BasePrompt):
+class PromptQuestion(BasePrompt):
     id = models.AutoField(primary_key=True)
     question = models.TextField(max_length=255)
     answer = models.TextField(max_length=255)
 
 
-class InvalidContentPrompt(BasePrompt):
+class PromptInjection(BasePrompt):
     id = models.AutoField(primary_key=True)
-    reason = models.TextField(max_length=255)
+    injection_reason = models.TextField(max_length=255)
