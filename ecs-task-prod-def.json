@@ -1,0 +1,118 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "onestep-prod",
+      "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:${{ github.sha }}",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "name": "onestep-prod-80-tcp",
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        },
+        {
+          "name": "onestep-prod-8000-tcp",
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "DJANGO_SETTINGS_MODULE",
+          "value": "onestep_be.settings.prod"
+        },
+        {
+          "name": "AWS_REGION_NAME",
+          "value": "${{ secrests.AWS_REGION }}"
+        },
+        {
+          "name": "AWS_SECRET_NAME",
+          "value": "${{ secrets.AWS_SECRET_NAME }}"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "value": "${{ secrets.AWS_ACCESS_KEY_ID }}"
+        },
+        {
+          "name": "AWS_SECRET_NAME_PROD",
+          "value": "${{ secrets.AWS_SECRET_NAME_PROD }}"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "value": "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/onestep-real-production",
+          "awslogs-create-group": "true",
+          "awslogs-region": "${{ secrets.AWS_REGION }}",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "onestep-real-production",
+  "taskRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "status": "ACTIVE",
+  "requiresAttributes": [
+    {
+      "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+    },
+    {
+      "name": "ecs.capability.execution-role-awslogs"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.ecr-auth"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.task-iam-role"
+    },
+    {
+      "name": "ecs.capability.execution-role-ecr-pull"
+    },
+    {
+      "name": "ecs.capability.extensible-ephemeral-storage"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+    },
+    {
+      "name": "ecs.capability.task-eni"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+    }
+  ],
+  "placementConstraints": [],
+  "compatibilities": ["EC2", "FARGATE"],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "3072",
+  "ephemeralStorage": {
+    "sizeInGiB": 100
+  },
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "registeredBy": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:root",
+  "tags": []
+}
