@@ -12,7 +12,10 @@ from onestep_be.settings import client
 from todos.models import Category, SubTodo, Todo
 from todos.serializers import (
     CategorySerializer,
+    GeneratedSubTodoSerializer,
     GetTodoSerializer,
+    PromptInjectionSerializer,
+    PromptQuestionSerializer,
     SubTodoSerializer,
     TodoSerializer,
 )
@@ -21,7 +24,10 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
-from todos.utils import get_planner_system_prompt
+from todos.utils import (
+    create_user_prompt,
+    get_planner_system_prompt,
+)
 
 
 class TodoView(APIView):
@@ -599,22 +605,29 @@ class RecommendSubTodo(APIView):
             ]
         """  # noqa: E501
         todo_id = request.data.get("todo_id")
+        user_id = request.data.get("user_id")
         additional_info = request.data.get("additional_info", None)
 
         try:
             todo = Todo.objects.get_with_id(id=todo_id)
-            user_prompt = "<user_prompt>" + todo.content + "</user_prompt>"
-            if additional_info is not None:
-                user_prompt += "\n<user_question>"
-                for i in range(len(additional_info)):
-                    user_prompt += (
-                        "\nQuestion : "
-                        + additional_info[i]["question"]
-                        + "\nUser Answer : "
-                        + additional_info[i]["answer"]
-                    )
-
-                user_prompt += "\n</user_question>"
+            user_prompt = create_user_prompt(todo, additional_info)
+            if additional_info:
+                for info in additional_info:
+                    try:
+                        log_data = {
+                            "todo_id": todo_id,
+                            "user_id": user_id,
+                            "question": info["question"],
+                            "answer": info["answer"],
+                        }
+                        serializer = PromptQuestionSerializer(data=log_data)
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
+                    except Exception as e:
+                        return Response(
+                            {"error": str(e)},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -629,6 +642,30 @@ class RecommendSubTodo(APIView):
                 ],
                 response_format={"type": "json_object"},
             )
+            prompt = json.loads(completion.choices[0].message.content)
+            if prompt["type"] == "invalid_content":
+                injection_data = {
+                    "injection_reason": prompt["thinking"],
+                    "todo_id": todo_id,
+                    "user_id": user_id,
+                }
+                injection_serializer = PromptInjectionSerializer(
+                    data=injection_data
+                )
+                injection_serializer.is_valid(raise_exception=True)
+                injection_serializer.save()
+            elif prompt["type"] == "answer":
+                for content in prompt["contents"]:
+                    sub_todo_data = {
+                        "content": content["content"],
+                        "todo_id": todo_id,
+                        "user_id": user_id,
+                    }
+                    sub_todo_serializer = GeneratedSubTodoSerializer(
+                        data=sub_todo_data
+                    )
+                    sub_todo_serializer.is_valid(raise_exception=True)
+                    sub_todo_serializer.save()
 
         except Todo.DoesNotExist:
             return Response(

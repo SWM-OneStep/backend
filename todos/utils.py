@@ -133,3 +133,16 @@ def get_planner_system_prompt():
         }
         """  # noqa: E501
     return planner_system_prompt
+
+
+def create_user_prompt(todo, additional_info):
+    user_prompt = f"<user_prompt>{todo.content}</user_prompt>"
+    if additional_info:
+        user_prompt += "\n<user_question>"
+        for info in additional_info:
+            user_prompt += (
+                f"\nQuestion : {info['question']}"
+                + f"\nUser Answer : {info['answer']}"
+            )
+        user_prompt += "\n</user_question>"
+    return user_prompt

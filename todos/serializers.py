@@ -7,7 +7,14 @@ from rest_framework import serializers
 from accounts.models import User
 from todos.utils import validate_lexo_order
 
-from .models import Category, SubTodo, Todo
+from .models import (
+    Category,
+    GeneratedSubTodo,
+    PromptInjection,
+    PromptQuestion,
+    SubTodo,
+    Todo,
+)
 
 
 class PatchOrderSerializer(serializers.Serializer):
@@ -258,3 +265,47 @@ class TodoSerializer(serializers.ModelSerializer):
         instance.updated_at = timezone.now()
         instance.save()
         return instance
+
+
+class GeneratedSubTodoSerializer(serializers.ModelSerializer):
+    content = serializers.CharField(max_length=255, required=True)
+    is_selected = serializers.BooleanField(default=False, required=False)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=True
+    )
+    todo_id = serializers.PrimaryKeyRelatedField(
+        queryset=Todo.objects.all(), required=True
+    )
+
+    class Meta:
+        model = GeneratedSubTodo
+        fields = "__all__"
+
+
+class PromptInjectionSerializer(serializers.ModelSerializer):
+    injection_reason = serializers.CharField(max_length=255, required=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=True
+    )
+    todo_id = serializers.PrimaryKeyRelatedField(
+        queryset=Todo.objects.all(), required=True
+    )
+
+    class Meta:
+        model = PromptInjection
+        fields = "__all__"
+
+
+class PromptQuestionSerializer(serializers.ModelSerializer):
+    question = serializers.CharField(max_length=255, required=True)
+    answer = serializers.CharField(max_length=255, required=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=True
+    )
+    todo_id = serializers.PrimaryKeyRelatedField(
+        queryset=Todo.objects.all(), required=True
+    )
+
+    class Meta:
+        model = PromptQuestion
+        fields = "__all__"
