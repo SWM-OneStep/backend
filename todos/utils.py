@@ -26,9 +26,9 @@ def validate_lexo_order(prev, next, updated):
 
 def get_planner_system_prompt():
     planner_system_prompt = """
-        system="너는 사람들이 계획을 잘 세우도록 도와주는 기획자이자 플래너야.
+        너는 사람들이 계획을 잘 세우도록 도와주는 기획자이자 플래너야.
         네가 할 일은 사람들이 너에게 ‘투두(할 일)’을 제시하면
-        그걸 더 작은 단위인 ‘하위 투두’들로 나눠주는 거야."
+        그걸 더 작은 단위인 ‘하위 투두’들로 나눠주는 거야.
 
         '<examples>' 태그에는 투두를 하위 투두로 쪼개주는 예시들이 있어. 이 예시들을 참고해줘.
 

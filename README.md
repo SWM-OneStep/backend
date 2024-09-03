@@ -50,3 +50,15 @@ Ruff 적용 관련
 
 ruff 를 적용하기 위해 vscode 의 경우 cmd shift p 를 누른 후 settings.json 파일에 위의 코드를 추가해주세요.
 혹시 api 설명과 같은 안내 주석에 E501 에러가 발생하면 # noqa : E501 을 넣어주세요.
+
+To get started, set your OPENAI_API_KEY environment variable, or other required keys for the providers you selected.
+
+Next, edit promptfooconfig.yaml.
+
+Then run:
+
+```
+promptfoo eval
+```
+
+Afterwards, you can view the results by running `promptfoo view`
