@@ -21,7 +21,6 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
-from todos.utils import sentry_data
 
 
 class TodoView(APIView):
@@ -124,7 +123,6 @@ class TodoView(APIView):
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
         serializer = GetTodoSerializer(todos, many=True)
-        sentry_data("GET", request.path, status.HTTP_200_OK, request.headers)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
