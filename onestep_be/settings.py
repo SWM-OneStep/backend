@@ -246,13 +246,12 @@ sentry_sdk.init(
     ],
 )
 
-sentry_sdk.metrics.incr(key="api_calls", value=1, tags={"api": "third_party"})
+sentry_sdk.metrics.incr(key="api_calls", value=1)
 
 sentry_sdk.metrics.distribution(
     key="processing_time",
     value=0.002,
     unit="second",
-    tags={"task": "example_task"},
 )
 sentry_sdk.metrics.gauge(
     key="cpu_usage",
