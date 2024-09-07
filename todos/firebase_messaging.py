@@ -4,6 +4,7 @@ from firebase_admin import credentials, messaging
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'onestep_be.settings')
 from django.conf import settings
 from dataclasses import dataclass
+from fcm_django.models import FCMDevice
 
 
 firebase_info = eval(settings.SECRETS.get("FIREBASE"))
@@ -26,11 +27,10 @@ def send_push_notification(token, title, body):
             title=title,
             body=body,
         ),
-        token=token,
     )
-
+    device = FCMDevice.objects.filter(registration_id=token).first()
     try:
-        messaging.send(message)
+        device.send_message(message)
     except Exception as e:
         # sentry capture exception
         return PUSH_NOTIFICATION_ERROR

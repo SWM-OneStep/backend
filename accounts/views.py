@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from fcm_django.api.rest_framework import FCMDeviceCreateOnlyViewSet, FCMDeviceAuthorizedViewSet
+from fcm_django.models import FCMDevice
 
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
@@ -44,7 +45,9 @@ class GoogleLogin(APIView):
                 user, _ = User.objects.get_or_create(
                     username=email, password=""
                 )
-                response = FCMDeviceCreateOnlyViewSet.as_view(request)
+                FCMDevice.objects.get_or_create(
+                    user=user, registration_id=device_token
+                )
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
                     {
