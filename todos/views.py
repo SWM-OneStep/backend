@@ -101,6 +101,7 @@ class TodoView(APIView):
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         user_id = request.GET.get("user_id")
+
         if user_id is None:
             return Response(
                 {"error": "user_id must be provided"},
@@ -163,7 +164,6 @@ class TodoView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
         )
