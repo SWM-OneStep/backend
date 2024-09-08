@@ -168,7 +168,7 @@ class GeneratedSubTodo(BasePrompt):
 class PromptQuestion(BasePrompt):
     id = models.AutoField(primary_key=True)
     question = models.TextField(max_length=255)
-    answer = models.TextField(max_length=255)
+    answer = models.TextField(max_length=255, null=True)
 
 
 class PromptInjection(BasePrompt):
