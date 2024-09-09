@@ -68,4 +68,4 @@ jobs:
           git config --global user.email ${{ secrets.GIT_USER_EMAIL }}
           git add version.txt
           git commit -m "Update version to ${VERSION}"
-          git push origin main
+          git push origin develop
