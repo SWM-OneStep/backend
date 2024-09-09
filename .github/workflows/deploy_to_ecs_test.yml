@@ -61,3 +61,11 @@ jobs:
         run: |
           VERSION=$(date +'%Y.%m.%d.%H.%M.%S')  # Y.M.D.H.M.S 형식으로 버전 생성
           echo "${VERSION}" > version.txt
+
+      - name: Commit version update
+        run: |
+          git config --global user.name ${{ secrets.GIT_USER_NAME }}
+          git config --global user.email ${{ secrets.GIT_USER_EMAIL }}
+          git add version.txt
+          git commit -m "Update version to ${VERSION}"
+          git push origin develop
