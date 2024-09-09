@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -221,6 +222,19 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# BASE_DIR은 Django 프로젝트의 루트 디렉토리를 가리킵니다.
+# version.txt 파일이 BASE_DIR에 있다고 가정합니다.
+VERSION_FILE_PATH = os.path.join(BASE_DIR, "version.txt")
+
+# 파일 읽기
+try:
+    with open(VERSION_FILE_PATH, "r") as file:
+        # 파일의 내용을 읽어서 변수에 저장
+        PROJECT_VERSION = file.read().strip()
+except FileNotFoundError:
+    PROJECT_VERSION = "Unknown"  # 파일이 없을 경우 기본값
+
 # sentry settings
 
 sentry_sdk.init(
@@ -228,6 +242,7 @@ sentry_sdk.init(
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     traces_sample_rate=0.5,
+    release=PROJECT_VERSION,
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
