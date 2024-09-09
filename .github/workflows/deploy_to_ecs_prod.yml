@@ -57,3 +57,8 @@ jobs:
           service: ${{ secrets.ECS_SERVICE_NAME_PROD }}
           cluster: ${{ secrets.ECS_CLUSTER_NAME_PROD }}
           wait-for-service-stability: false
+
+      - name: Update version.txt
+        run: |
+          VERSION=$(date +'%Y.%m.%d.%H.%M.%S')  # Y.M.D.H.M.S 형식으로 버전 생성
+          echo "${VERSION}" > version.txt
