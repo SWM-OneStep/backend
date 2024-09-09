@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.ACTIONS_PAT }}
 
       - name: Set Dockerfile Path
         id: dockerfile-path
@@ -68,4 +70,4 @@ jobs:
           git config --global user.email ${{ secrets.GIT_USER_EMAIL }}
           git add version.txt
           git commit -m "Update version to ${VERSION}"
-          git push https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/SWM-OneStep/backend.git develop
+          git push origin develop
