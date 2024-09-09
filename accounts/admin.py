@@ -5,11 +5,11 @@ from .models import Device, User
 
 
 class UserAdmin(admin.ModelAdmin):
-    readonly_fields = ["id"]
+    readonly_fields = ["id", "social_provider", "username"]
     list_display = [
         "id",
-        "email",
         "username",
+        "social_provider",
         "is_active",
         "is_staff",
         "is_superuser",
@@ -20,8 +20,8 @@ class UserAdmin(admin.ModelAdmin):
             {
                 "fields": [
                     "id",
-                    "email",
                     "username",
+                    "social_provider",
                     "is_active",
                     "is_staff",
                     "is_superuser",
