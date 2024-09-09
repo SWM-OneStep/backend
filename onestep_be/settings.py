@@ -232,6 +232,8 @@ try:
     with open(VERSION_FILE_PATH, "r") as file:
         # 파일의 내용을 읽어서 변수에 저장
         PROJECT_VERSION = file.read().strip()
+        if PROJECT_VERSION == "":
+            PROJECT_VERSION = "Unknown"
 except FileNotFoundError:
     PROJECT_VERSION = "Unknown"  # 파일이 없을 경우 기본값
 
