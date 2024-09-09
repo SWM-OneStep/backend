@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Update version.txt
+        run: |
+          VERSION=$(TZ=Asia/Seoul date +'%Y.%m.%d.%H.%M.%S')  # 한국 시간대 사용
+          echo "onestep_dev@${VERSION}" > version.txt
+
       - name: Set Dockerfile Path
         id: dockerfile-path
         run: |
@@ -56,8 +61,3 @@ jobs:
           service: ${{ secrets.ECS_SERVICE_NAME }}
           cluster: ${{ secrets.ECS_CLUSTER_NAME }}
           wait-for-service-stability: false
-
-      - name: Update version.txt
-        run: |
-          VERSION=$(TZ=Asia/Seoul date +'%Y.%m.%d.%H.%M.%S')  # 한국 시간대 사용
-          echo "onestep_dev@${VERSION}" > version.txt
