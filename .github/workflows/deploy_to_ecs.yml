@@ -60,4 +60,4 @@ jobs:
       - name: Update version.txt
         run: |
           VERSION=$(date +'%Y.%m.%d.%H.%M.%S')  # Y.M.D.H.M.S 형식으로 버전 생성
-          echo "${VERSION}" > version.txt
+          echo "onestep_dev@${VERSION}" > version.txt
