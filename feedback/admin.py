@@ -5,6 +5,14 @@ from .models import Feedback
 
 class FeedbackAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "user_id", "created_at"]
+    list_display = [
+        "id",
+        "user_id",
+        "title",
+        "category",
+        "status",
+        "created_at",
+    ]
     fieldsets = [
         (
             None,
@@ -16,7 +24,7 @@ class FeedbackAdmin(admin.ModelAdmin):
                     "category",
                     "description",
                     "created_at",
-                    "is_completed",
+                    "status",
                 ]
             },
         ),
