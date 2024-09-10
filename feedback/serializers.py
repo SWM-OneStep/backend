@@ -10,7 +10,7 @@ class FeedbackSerializer(serializers.ModelSerializer):
     )
     title = serializers.CharField(max_length=200, required=True)
     category = serializers.ChoiceField(
-        choices=Feedback.CATEGORY_CHOICES, required=True
+        choices=Feedback.CategoryProvider.choices, required=True
     )
     description = serializers.CharField(required=True)
 
