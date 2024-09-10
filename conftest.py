@@ -1,6 +1,8 @@
 # This file is for Pytest Configuration
 # This file is used to define fixtures that can be used in multiple test files
 
+import random
+
 import pytest
 from faker import Faker
 from rest_framework.test import APIClient
@@ -95,3 +97,18 @@ def order():
 @pytest.fixture
 def color():
     return fake.color()
+
+
+@pytest.fixture
+def title():
+    return fake.sentence(nb_words=3)
+
+
+@pytest.fixture
+def category():
+    CATEGORY_CHOICES = [
+        ("bug", "버그"),
+        ("feature", "기능 요청"),
+        ("feedback", "일반 피드백"),
+    ]
+    return random.choice(CATEGORY_CHOICES)[0]
