@@ -3,6 +3,7 @@ from django.urls import include, path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework.permissions import AllowAny
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -34,3 +35,5 @@ urlpatterns = [
     path("todos/", include("todos.urls")),
     path("feedback/", include("feedback.urls")),
 ]
+
+urlpatterns += staticfiles_urlpatterns()
