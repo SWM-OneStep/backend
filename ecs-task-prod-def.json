@@ -24,7 +24,7 @@
       "environment": [
         {
           "name": "DJANGO_SETTINGS_MODULE",
-          "value": "onestep_be.settings.prod"
+          "value": "onestep_be.setting.prod"
         },
         {
           "name": "AWS_REGION_NAME",
