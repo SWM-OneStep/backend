@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "todos",
+    "feedback",
     "rest_framework_simplejwt",
     "allauth",
     "allauth.account",
@@ -159,7 +161,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 DATABASES = {
     "default": {
-        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": SECRETS.get("DB_NAME"),
         "USER": SECRETS.get("DB_USER"),
         "PASSWORD": SECRETS.get("DB_PASSWORD"),
@@ -167,13 +169,13 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     },
     "test": {
-        'ENGINE': 'dj_db_conn_pool.backends.mysql',
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": SECRETS.get("TEST_DB_NAME"),
         "USER": SECRETS.get("TEST_DB_USER"),
         "PASSWORD": SECRETS.get("TEST_DB_PASSWORD"),
         "HOST": SECRETS.get("TEST_DB_HOST"),
         "PORT": SECRETS.get("DB_PORT"),
-    }
+    },
 }
 
 # Add OpenAI API Key
@@ -221,6 +223,21 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# BASE_DIR은 Django 프로젝트의 루트 디렉토리를 가리킵니다.
+# version.txt 파일이 BASE_DIR에 있다고 가정합니다.
+VERSION_FILE_PATH = os.path.join(BASE_DIR, "version.txt")
+
+# 파일 읽기
+try:
+    with open(VERSION_FILE_PATH, "r") as file:
+        # 파일의 내용을 읽어서 변수에 저장
+        PROJECT_VERSION = file.read().strip()
+        if PROJECT_VERSION == "":
+            PROJECT_VERSION = "Unknown"
+except FileNotFoundError:
+    PROJECT_VERSION = "Unknown"  # 파일이 없을 경우 기본값
+
 # sentry settings
 
 sentry_sdk.init(
@@ -228,6 +245,7 @@ sentry_sdk.init(
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     traces_sample_rate=0.5,
+    release=PROJECT_VERSION,
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
@@ -244,4 +262,17 @@ sentry_sdk.init(
             cache_spans=False,
         ),
     ],
+)
+
+sentry_sdk.metrics.incr(key="api_calls", value=1)
+
+sentry_sdk.metrics.distribution(
+    key="processing_time",
+    value=0.002,
+    unit="second",
+)
+sentry_sdk.metrics.gauge(
+    key="cpu_usage",
+    value=94,
+    unit="percent",
 )
