@@ -88,3 +88,4 @@ Werkzeug==3.0.3
 wheel==0.43.0
 zope.event==5.0
 zope.interface==7.0.1
+resend==2.4.0

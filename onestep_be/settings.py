@@ -15,6 +15,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import django.db.models.signals
+import resend
 import sentry_sdk
 from openai import OpenAI
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -276,3 +277,5 @@ sentry_sdk.metrics.gauge(
     value=94,
     unit="percent",
 )
+
+resend.api_key = SECRETS.get("RESEND")

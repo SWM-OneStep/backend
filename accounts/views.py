@@ -3,13 +3,14 @@ from django.contrib.auth import get_user_model
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Device
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
+from accounts.utils import send_email
 
 User = get_user_model()
 
@@ -73,3 +74,9 @@ class AndroidClientView(APIView):
         return Response(
             {"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK
         )
+
+
+class EmailView(APIView):
+    def post(self, request):
+        result = send_email("", "", "")
+        return Response(result, status=status.HTTP_200_OK)
