@@ -22,15 +22,16 @@ PUSH_NOTIFICATION_ERROR = PushNotificationStatus("error")
 
 
 def send_push_notification(token, title, body):
-    message = messaging.Message(
-        notification=messaging.Notification(
-            title=title,
-            body=body,
-        ),
-    )
     device = FCMDevice.objects.filter(registration_id=token).first()
     try:
-        device.send_message(message)
+        device.send_message(
+            messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+            )
+        )
     except Exception as e:
         # sentry capture exception
         return PUSH_NOTIFICATION_ERROR
