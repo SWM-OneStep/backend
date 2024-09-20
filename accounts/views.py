@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from accounts.models import Device
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
-from accounts.utils import send_email
+from accounts.utils import send_email, welcome_email
 
 User = get_user_model()
 
@@ -42,9 +42,7 @@ class GoogleLogin(APIView):
             )
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                user, _ = User.objects.get_or_create(
-                    username=email, password=""
-                )
+                user = self.get_or_create_user(email)
                 Device.objects.get_or_create(user_id=user, token=device_token)
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
@@ -55,6 +53,18 @@ class GoogleLogin(APIView):
                 )
         except Exception:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def get_or_create_user(self, email):
+        try:
+            user = User.objects.get(username=email, password="")
+        except User.DoesNotExist:
+            user = User.objects.create(username=email, password="")
+            send_email(
+                "szonestep@gmail.com",
+                "Welcome to join us",
+                welcome_email(user.username),
+            )
+        return user
 
 
 class UserRetrieveView(APIView):
@@ -78,5 +88,9 @@ class AndroidClientView(APIView):
 
 class EmailView(APIView):
     def post(self, request):
-        result = send_email("", "", "")
+        result = send_email(
+            to_email_address="szonestep@gmail.com",
+            subject="Welcome to join us",
+            message=welcome_email("user_name_here"),
+        )
         return Response(result, status=status.HTTP_200_OK)

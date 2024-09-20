@@ -3,12 +3,15 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from rest_framework import status
 from rest_framework.test import (
     APIClient,
     APIRequestFactory,
     force_authenticate,
 )
 
+from accounts.models import Device
+from accounts.utils import welcome_email
 from accounts.views import UserRetrieveView
 
 User = get_user_model()
@@ -35,3 +38,53 @@ def test_google_login(invalid_token):
     client = APIClient()
     response = client.post(reverse("google_login"), data=invalid_token)
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestGoogleLogin:
+    @pytest.fixture
+    def api_client(self):
+        return APIClient()
+
+    @patch("accounts.views.id_token.verify_oauth2_token")
+    @patch("accounts.views.send_email")  # Ensure the correct patch path
+    def test_google_login_new_user(
+        self, mock_send_email, mock_verify_oauth2_token, api_client
+    ):
+        # Mock the token verification response
+        mock_verify_oauth2_token.return_value = {
+            "iss": "accounts.google.com",
+            "email": "testuser@example.com",
+        }
+
+        # Define the URL for the GoogleLogin view
+        url = reverse(
+            "google_login"
+        )  # Replace 'google-login' with your actual URL name
+
+        # Create a mock request
+        data = {"token": "mock_token", "device_token": "mock_device_token"}
+
+        # Call the view
+        response = api_client.post(url, data, format="json")
+        print(response.data)
+
+        # Check that the user was created
+        user = User.objects.get(username="testuser@example.com")
+        assert user is not None
+
+        # Check that the device was created
+        device = Device.objects.get(user_id=user.id, token="mock_device_token")
+        assert device is not None
+
+        # Check that the email was sent
+        mock_send_email.assert_called_once_with(
+            "szonestep@gmail.com",
+            "Welcome to join us",
+            welcome_email(user.username),
+        )
+
+        # Check the response status
+        assert response.status_code == status.HTTP_200_OK
+        assert "refresh" in response.data
+        assert "access" in response.data
