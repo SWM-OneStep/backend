@@ -90,7 +90,7 @@ class EmailView(APIView):
     def post(self, request):
         result = send_email(
             to_email_address="szonestep@gmail.com",
-            subject="Welcome to join us",
+            subject="Welcome to join OneStep",
             message=welcome_email("user_name_here"),
         )
         return Response(result, status=status.HTTP_200_OK)
