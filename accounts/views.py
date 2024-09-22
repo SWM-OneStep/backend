@@ -60,7 +60,7 @@ class GoogleLogin(APIView):
         except User.DoesNotExist:
             user = User.objects.create(username=email, password="")
             send_email(
-                "szonestep@gmail.com",
+                email,
                 "Welcome to join us",
                 welcome_email(user.username),
             )
