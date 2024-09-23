@@ -4,7 +4,7 @@ from django.template.loader import render_to_string
 
 def send_email(to_email_address, subject, message):
     params: resend.Emails.SendParams = {
-        "from": "Acme <onboarding@resend.dev>",
+        "from": "developers@stepby.one",
         "to": to_email_address,
         "subject": subject,
         "html": message,
