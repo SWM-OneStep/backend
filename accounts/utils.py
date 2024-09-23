@@ -19,7 +19,3 @@ def welcome_email(user_name):
         "welcome_email.html", {"username": user_name}
     )
     return html_message
-
-
-def render_to_string_html(template_name):
-    return render_to_string(template_name)
