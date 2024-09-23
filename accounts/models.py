@@ -42,6 +42,7 @@ class User(AbstractUser, TimeStamp):
         choices=SocialProvider.choices,
         default=SocialProvider.GOOGLE,
     )
+    is_subscribed = models.BooleanField(default=False)
 
 
 class Device(models.Model):

@@ -77,6 +77,16 @@ class UserRetrieveView(APIView):
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
+    def patch(self, request):
+        """
+        입력 : is_subscribe (Boolean)
+        """
+        user = User.objects.get(username=request.user.username)
+        user.is_subscribed = request.data.get("is_subscribed")
+        user.save()
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class AndroidClientView(APIView):
     def get(self, request):
@@ -84,13 +94,3 @@ class AndroidClientView(APIView):
         return Response(
             {"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK
         )
-
-
-class EmailView(APIView):
-    def post(self, request):
-        result = send_email(
-            to_email_address="szonestep@gmail.com",
-            subject="Welcome to join OneStep",
-            message=welcome_email("user_name_here"),
-        )
-        return Response(result, status=status.HTTP_200_OK)
