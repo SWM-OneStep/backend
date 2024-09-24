@@ -62,6 +62,8 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    'fcm_django',
+    "django_crontab",
 ]
 
 MIDDLEWARE = [
@@ -77,21 +79,24 @@ MIDDLEWARE = [
     "djangorestframework_camel_case.middleware.CamelCaseMiddleWare",
 ]
 
+CRONJOBS = [
+    ('0 8 * * *', 'todos.jobs.send_morning_alarm'),
+    ('0 14 * * *', 'todos.jobs.send_afternoon_alarm'),
+    ('0 20 * * *', 'todos.jobs.send_evening_alarm'),
+]
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "accounts.authentication.CustomJWTAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
         "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
-        # Any other renders
     ),
     "DEFAULT_PARSER_CLASSES": (
-        # If you use MultiPartFormParser or FormParser, we also have a camel case version # noqa : E501
         "djangorestframework_camel_case.parser.CamelCaseFormParser",
         "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
-        # Any other parsers
     ),
 }
 
@@ -113,7 +118,7 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",  # noqa : E501
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken", "accounts.tokens.CustomRefreshToken"),
     "TOKEN_TYPE_CLAIM": "token_type",
     "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
