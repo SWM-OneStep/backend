@@ -61,7 +61,7 @@ class TestGoogleLogin:
         return APIClient()
 
     @patch("accounts.views.id_token.verify_oauth2_token")
-    @patch("accounts.views.send_email")  # Ensure the correct patch path
+    @patch("accounts.views.send_email")
     def test_google_login_new_user(
         self, mock_send_email, mock_verify_oauth2_token, api_client
     ):
@@ -72,9 +72,7 @@ class TestGoogleLogin:
         }
 
         # Define the URL for the GoogleLogin view
-        url = reverse(
-            "google_login"
-        )  # Replace 'google-login' with your actual URL name
+        url = reverse("google_login")
 
         # Create a mock request
         data = {"token": "mock_token", "device_token": "mock_device_token"}
