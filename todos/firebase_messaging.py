@@ -32,7 +32,6 @@ def send_push_notification(token, title, body):
                 ),
             )
         )
-    except Exception as e:
-        # sentry capture exception
+    except Exception:
         return PUSH_NOTIFICATION_ERROR
     return PUSH_NOTIFICATION_SUCCESS

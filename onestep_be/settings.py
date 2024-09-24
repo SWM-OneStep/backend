@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     'fcm_django',
+    "django_crontab",
 ]
 
 MIDDLEWARE = [
@@ -76,6 +77,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "djangorestframework_camel_case.middleware.CamelCaseMiddleWare",
+]
+
+# cron jobs
+CRONJOBS = [
+    ('0 8 * * *', 'todos.jobs.send_morning_alarm'),
+    ('0 14 * * *', 'todos.jobs.send_afternoon_alarm'),
+    ('0 20 * * *', 'todos.jobs.send_evening_alarm'),
 ]
 
 REST_FRAMEWORK = {
