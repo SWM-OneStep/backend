@@ -1,14 +1,24 @@
+from dataclasses import dataclass
+
 import resend
 from django.template.loader import render_to_string
 
 
-def send_email(to_email_address, subject, message):
-    params: resend.Emails.SendParams = {
-        "from": "developers@stepby.one",
-        "to": to_email_address,
-        "subject": subject,
-        "html": message,
-    }
+@dataclass
+class SendParams:
+    from_email: str
+    to: str
+    subject: str
+    html: str
+
+
+def send_email(to_email_address: str, subject: str, message: str):
+    params = SendParams(
+        from_email="developers@stepby.one",
+        to=to_email_address,
+        subject=subject,
+        html=message,
+    )
 
     email = resend.Emails.send(params)
     return email

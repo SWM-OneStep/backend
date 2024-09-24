@@ -27,7 +27,6 @@ class TestView(APIView):
 
 
 class GoogleLogin(APIView):
-    google_client_id = settings.SECRETS.get("GCID")
     authentication_classes = []
     permission_classes = [AllowAny]
 
