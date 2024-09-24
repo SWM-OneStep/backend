@@ -3,7 +3,6 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.settings import api_settings
 from jwt import DecodeError, ExpiredSignatureError
 import jwt
-from fcm_django.api.rest_framework import *
 
 
 class CustomJWTAuthentication(JWTAuthentication):
