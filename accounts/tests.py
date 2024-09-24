@@ -36,7 +36,7 @@ def test_user_info(create_user):
 
 
 @pytest.mark.django_db
-def test_update_category_success(
+def test_update_user_is_subscribed(
     create_user, authenticated_client, content, order, color
 ):
     url = reverse("user")  # URL name for the categoryView patch method
@@ -51,6 +51,12 @@ def test_update_category_success(
 def test_google_login(invalid_token):
     client = APIClient()
     response = client.post(reverse("google_login"), data=invalid_token)
+    assert response.status_code == 400
+
+
+def test_google_login_missing_device_token():
+    client = APIClient()
+    response = client.post(reverse("google_login"))
     assert response.status_code == 400
 
 

@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.exceptions import LoginException
 from accounts.models import Device
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
@@ -19,13 +20,6 @@ JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
 GOOGLE_CLIENT_ID = settings.SECRETS.get("GCID")
 
 
-class TestView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"message": "Hello, World!"})
-
-
 class GoogleLogin(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -34,28 +28,31 @@ class GoogleLogin(APIView):
         token = request.data.get("token")
         device_token = request.data.get("device_token")
         if not device_token or not token:
-            raise Exception("device token and token is required")
+            raise LoginException()
         try:
             idinfo = id_token.verify_oauth2_token(
                 token, requests.Request(), audience=GOOGLE_CLIENT_ID
             )
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                user = self.get_or_create_user(email)
+                user = User.get_or_create_user(email)
                 Device.objects.get_or_create(user_id=user, token=device_token)
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
                     {
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
-                    }
+                    },
+                    status=status.HTTP_200_OK,
                 )
-        except Exception:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def get_or_create_user(self, email):
         try:
-            user = User.objects.get(username=email, password="")
+            user = User.objects.get(username=email)
         except User.DoesNotExist:
             user = User.objects.create(username=email, password="")
             send_email(

@@ -3,9 +3,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from accounts.utils import (
-    send_email,
-)
+from accounts.utils import send_email
 
 
 class TimeStamp(models.Model):
