@@ -79,7 +79,6 @@ MIDDLEWARE = [
     "djangorestframework_camel_case.middleware.CamelCaseMiddleWare",
 ]
 
-# cron jobs
 CRONJOBS = [
     ('0 8 * * *', 'todos.jobs.send_morning_alarm'),
     ('0 14 * * *', 'todos.jobs.send_afternoon_alarm'),
@@ -89,19 +88,15 @@ CRONJOBS = [
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "accounts.authentication.CustomJWTAuthentication",
-        # "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
         "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
-        # Any other renders
     ),
     "DEFAULT_PARSER_CLASSES": (
-        # If you use MultiPartFormParser or FormParser, we also have a camel case version # noqa : E501
         "djangorestframework_camel_case.parser.CamelCaseFormParser",
         "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
-        # Any other parsers
     ),
 }
 
