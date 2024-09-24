@@ -81,7 +81,6 @@ class PatchNote(models.Model):
             message = f.read()
 
         send_email(
-            # to_email_address=list(user_email_list),
             to_email_address=list(user_email_list),
             subject=subject,
             message=message,

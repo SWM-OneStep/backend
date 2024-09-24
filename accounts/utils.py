@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List, Union
 
 import resend
 from django.template.loader import render_to_string
@@ -7,12 +8,14 @@ from django.template.loader import render_to_string
 @dataclass
 class SendParams:
     from_email: str
-    to: str
+    to: Union[str, List[str]]
     subject: str
     html: str
 
 
-def send_email(to_email_address: str, subject: str, message: str):
+def send_email(
+    to_email_address: Union[str, List[str]], subject: str, message: str
+):
     params = SendParams(
         from_email="developers@stepby.one",
         to=to_email_address,
