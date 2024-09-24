@@ -81,7 +81,6 @@ class TestGoogleLogin:
 
         # Call the view
         response = api_client.post(url, data, format="json")
-        print(response.data)
 
         # Check that the user was created
         user = User.objects.get(username="testuser@example.com")
