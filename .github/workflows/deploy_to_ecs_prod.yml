@@ -36,6 +36,7 @@ jobs:
 
       - name: Build Docker image
         run: |
+
           docker build -f ${{ env.DOCKERFILE_PATH }} -t ${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest .
           docker tag ${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
 

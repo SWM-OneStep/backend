@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from fcm_django.models import FCMDevice
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework import status
@@ -8,7 +9,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.exceptions import LoginException
-from accounts.models import Device
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
 
@@ -35,7 +35,10 @@ class GoogleLogin(APIView):
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
                 user = User.get_or_create_user(email)
-                Device.objects.get_or_create(user_id=user, token=device_token)
+
+                FCMDevice.objects.get_or_create(
+                    user=user, registration_id=device_token
+                )
                 refresh = CustomRefreshToken.for_user(user, device_token)
                 return Response(
                     {
