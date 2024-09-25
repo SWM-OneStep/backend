@@ -1,14 +1,14 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from fcm_django.models import FCMDevice
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from fcm_django.api.rest_framework import FCMDeviceCreateOnlyViewSet, FCMDeviceAuthorizedViewSet
-from fcm_django.models import FCMDevice
 
+from accounts.exceptions import LoginException
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
 
@@ -19,15 +19,7 @@ JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
 GOOGLE_CLIENT_ID = settings.SECRETS.get("GCID")
 
 
-class TestView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"message": "Hello, World!"})
-
-
 class GoogleLogin(APIView):
-    google_client_id = settings.SECRETS.get("GCID")
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -35,16 +27,15 @@ class GoogleLogin(APIView):
         token = request.data.get("token")
         device_token = request.data.get("device_token")
         if not device_token or not token:
-            raise Exception("device token and token is required")
+            raise LoginException()
         try:
             idinfo = id_token.verify_oauth2_token(
                 token, requests.Request(), audience=GOOGLE_CLIENT_ID
             )
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                user, _ = User.objects.get_or_create(
-                    username=email, password=""
-                )
+                user = User.get_or_create_user(email)
+
                 FCMDevice.objects.get_or_create(
                     user=user, registration_id=device_token
                 )
@@ -53,10 +44,13 @@ class GoogleLogin(APIView):
                     {
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
-                    }
+                    },
+                    status=status.HTTP_200_OK,
                 )
-        except Exception:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class UserRetrieveView(APIView):
@@ -68,6 +62,16 @@ class UserRetrieveView(APIView):
         user = User.objects.get(username=request.user.username)
         serializer = UserSerializer(user)
         return Response(serializer.data)
+
+    def patch(self, request):
+        """
+        입력 : is_subscribe (Boolean)
+        """
+        user = User.objects.get(username=request.user.username)
+        user.is_subscribed = request.data.get("is_subscribed")
+        user.save()
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AndroidClientView(APIView):

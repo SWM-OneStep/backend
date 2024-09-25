@@ -1,7 +1,7 @@
 # Register your models here.
 from django.contrib import admin
 
-from .models import Device, User
+from .models import Device, PatchNote, User
 
 
 class UserAdmin(admin.ModelAdmin):
@@ -42,5 +42,10 @@ class DeviceAdmin(admin.ModelAdmin):
     ]
 
 
+class PatchNoteAdmin(admin.ModelAdmin):
+    list_display = ("title", "created_at")
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(Device, DeviceAdmin)
+admin.site.register(PatchNote, PatchNoteAdmin)

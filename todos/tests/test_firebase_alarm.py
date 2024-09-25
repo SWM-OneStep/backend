@@ -1,10 +1,15 @@
 import unittest
 from unittest.mock import patch
+
 from django.test import TestCase
-from todos.firebase_messaging import send_push_notification, PUSH_NOTIFICATION_SUCCESS
+
+from todos.firebase_messaging import (
+    PUSH_NOTIFICATION_SUCCESS,
+    send_push_notification,
+)
+
 
 class FCMNotificationTest(TestCase):
-
     @patch("todos.firebase_messaging.send_push_notification")
     def test_send_push_notification(self, mock_send_fcm):
         mock_send_fcm.return_value = PUSH_NOTIFICATION_SUCCESS
@@ -14,5 +19,5 @@ class FCMNotificationTest(TestCase):
         self.assertEqual(response, PUSH_NOTIFICATION_SUCCESS)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

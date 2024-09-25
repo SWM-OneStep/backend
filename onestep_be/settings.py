@@ -15,6 +15,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import django.db.models.signals
+import resend
 import sentry_sdk
 from openai import OpenAI
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -62,7 +63,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
-    'fcm_django',
+    "fcm_django",
     "django_crontab",
 ]
 
@@ -80,9 +81,9 @@ MIDDLEWARE = [
 ]
 
 CRONJOBS = [
-    ('0 8 * * *', 'todos.jobs.send_morning_alarm'),
-    ('0 14 * * *', 'todos.jobs.send_afternoon_alarm'),
-    ('0 20 * * *', 'todos.jobs.send_evening_alarm'),
+    ("0 8 * * *", "todos.jobs.send_morning_alarm"),
+    ("0 14 * * *", "todos.jobs.send_afternoon_alarm"),
+    ("0 20 * * *", "todos.jobs.send_evening_alarm"),
 ]
 
 REST_FRAMEWORK = {
@@ -118,7 +119,10 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",  # noqa : E501
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken", "accounts.tokens.CustomRefreshToken"),
+    "AUTH_TOKEN_CLASSES": (
+        "rest_framework_simplejwt.tokens.AccessToken",
+        "accounts.tokens.CustomRefreshToken",
+    ),
     "TOKEN_TYPE_CLAIM": "token_type",
     "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
@@ -249,12 +253,12 @@ sentry_sdk.init(
     dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
-    traces_sample_rate=0.5,
+    traces_sample_rate=1.0,
     release=PROJECT_VERSION,
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
-    profiles_sample_rate=0.5,
+    profiles_sample_rate=1.0,
     integrations=[
         DjangoIntegration(
             transaction_style="url",
@@ -281,3 +285,5 @@ sentry_sdk.metrics.gauge(
     value=94,
     unit="percent",
 )
+
+resend.api_key = SECRETS.get("RESEND")
