@@ -65,10 +65,13 @@ class UserRetrieveView(APIView):
 
     def patch(self, request):
         """
-        입력 : is_subscribe (Boolean)
+        입력 : is_subscribe (Boolean), is_premium (Boolean)
         """
         user = User.objects.get(username=request.user.username)
-        user.is_subscribed = request.data.get("is_subscribed")
+        if request.data.get("is_premium"):
+            user.is_premium = request.data.get("is_premium")
+        if request.data.get("is_subscribed"):
+            user.is_subscribed = request.data.get("is_subscribed")
         user.save()
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
