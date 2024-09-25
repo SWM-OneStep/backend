@@ -147,3 +147,9 @@ class Category(TimeStamp):
     order = models.CharField(max_length=255, null=True)
 
     objects = TodosManager()
+
+
+class UserLastUsage(models.Model):
+    id = models.AutoField(primary_key=True)
+    user_id = models.ForeignKey(User, on_delete=models.PROTECT)
+    last_used_at = models.DateTimeField(null=True)
