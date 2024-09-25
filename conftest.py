@@ -14,6 +14,13 @@ client = APIClient()
 fake = Faker()
 
 
+@pytest.fixture(autouse=True)
+def skip_fcm_middleware():
+    from django.conf import settings
+
+    settings.MIDDLEWARE = settings.TEST_MIDDLEWARE
+
+
 @pytest.fixture(scope="module")
 def invalid_token():
     response = {"token": "token", "deviceToken": "device_token"}

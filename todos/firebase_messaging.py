@@ -7,10 +7,6 @@ from dataclasses import dataclass
 from fcm_django.models import FCMDevice
 
 
-firebase_info = eval(settings.SECRETS.get("FIREBASE"))
-cred = credentials.Certificate(firebase_info)
-firebase_admin.initialize_app(cred)
-
 
 @dataclass
 class PushNotificationStatus:
@@ -32,6 +28,7 @@ def send_push_notification(token, title, body):
                 ),
             )
         )
-    except Exception:
+    except Exception as e:
+        print("e", e)
         return PUSH_NOTIFICATION_ERROR
     return PUSH_NOTIFICATION_SUCCESS

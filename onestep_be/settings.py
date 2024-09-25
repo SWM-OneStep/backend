@@ -59,11 +59,7 @@ INSTALLED_APPS = [
     "todos",
     "feedback",
     "rest_framework_simplejwt",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "fcm_django",
+    'fcm_django',
     "django_crontab",
 ]
 
@@ -76,9 +72,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
+    # "allauth.account.middleware.AccountMiddleware",
     "djangorestframework_camel_case.middleware.CamelCaseMiddleWare",
+    "todos.middleware.FCMAlarmMiddleware",
 ]
+
+TEST_MIDDLEWARE = [m for m in MIDDLEWARE if m != "todos.middleware.FCMAlarmMiddleware"]
 
 CRONJOBS = [
     ("0 8 * * *", "todos.jobs.send_morning_alarm"),
