@@ -3,7 +3,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from accounts.utils import send_email
+from accounts.utils import send_email, send_welcome_email
 
 
 class TimeStamp(models.Model):
@@ -41,6 +41,18 @@ class User(AbstractUser, TimeStamp):
         default=SocialProvider.GOOGLE,
     )
     is_subscribed = models.BooleanField(default=False)
+
+    @classmethod
+    def get_or_create_user(self, email):
+        try:
+            user = User.objects.get(username=email)
+        except User.DoesNotExist:
+            user = User.objects.create(username=email, password="")
+            send_welcome_email(
+                email,
+                (user.username),
+            )
+        return user
 
 
 class Device(models.Model):

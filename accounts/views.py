@@ -11,7 +11,6 @@ from accounts.exceptions import LoginException
 from accounts.models import Device
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
-from accounts.utils import send_email, welcome_email
 
 User = get_user_model()
 
@@ -49,18 +48,6 @@ class GoogleLogin(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-
-    def get_or_create_user(self, email):
-        try:
-            user = User.objects.get(username=email)
-        except User.DoesNotExist:
-            user = User.objects.create(username=email, password="")
-            send_email(
-                email,
-                "Welcome to join us",
-                welcome_email(user.username),
-            )
-        return user
 
 
 class UserRetrieveView(APIView):

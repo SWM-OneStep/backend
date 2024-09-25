@@ -11,7 +11,6 @@ from rest_framework.test import (
 )
 
 from accounts.models import Device
-from accounts.utils import welcome_email
 from accounts.views import UserRetrieveView
 
 User = get_user_model()
@@ -67,9 +66,9 @@ class TestGoogleLogin:
         return APIClient()
 
     @patch("accounts.views.id_token.verify_oauth2_token")
-    @patch("accounts.views.send_email")
+    @patch("accounts.models.send_welcome_email")
     def test_google_login_new_user(
-        self, mock_send_email, mock_verify_oauth2_token, api_client
+        self, mock_send_welcome_email, mock_verify_oauth2_token, api_client
     ):
         # Mock the token verification response
         mock_verify_oauth2_token.return_value = {
@@ -95,10 +94,9 @@ class TestGoogleLogin:
         assert device is not None
 
         # Check that the email was sent
-        mock_send_email.assert_called_once_with(
+        mock_send_welcome_email.assert_called_once_with(
             user.username,
-            "Welcome to join us",
-            welcome_email(user.username),
+            user.username,
         )
 
         # Check the response status
