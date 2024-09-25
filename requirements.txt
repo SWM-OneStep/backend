@@ -107,6 +107,4 @@ proto-plus==1.24.0
 protobuf==5.28.2
 swapper==1.4.0
 django_crontab==0.7.1
-mock==3.14.0
-anyio==4.2.0
 Faker==27.0.0
