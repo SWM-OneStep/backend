@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from fcm_django.models import FCMDevice
 from rest_framework import status
 from rest_framework.test import (
     APIClient,
@@ -10,7 +11,6 @@ from rest_framework.test import (
     force_authenticate,
 )
 
-from accounts.models import Device
 from accounts.views import UserRetrieveView
 
 User = get_user_model()
@@ -47,12 +47,14 @@ def test_update_user_is_subscribed(
     assert response.data["is_subscribed"]
 
 
+@pytest.mark.django_db
 def test_google_login(invalid_token):
     client = APIClient()
     response = client.post(reverse("google_login"), data=invalid_token)
     assert response.status_code == 400
 
 
+@pytest.mark.django_db
 def test_google_login_missing_device_token():
     client = APIClient()
     response = client.post(reverse("google_login"))
@@ -90,7 +92,9 @@ class TestGoogleLogin:
         assert user is not None
 
         # Check that the device was created
-        device = Device.objects.get(user_id=user.id, token="mock_device_token")
+        device = FCMDevice.objects.get(
+            user_id=user.id, registration_id="mock_device_token"
+        )
         assert device is not None
 
         # Check that the email was sent
