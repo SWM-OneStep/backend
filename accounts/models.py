@@ -50,7 +50,7 @@ class User(AbstractUser, TimeStamp):
             user = User.objects.create(username=email, password="")
             send_welcome_email(
                 email,
-                (user.username),
+                user.username,
             )
         return user
 
