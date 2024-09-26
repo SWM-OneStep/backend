@@ -72,12 +72,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # "allauth.account.middleware.AccountMiddleware",
     "djangorestframework_camel_case.middleware.CamelCaseMiddleWare",
-    "todos.middleware.FCMAlarmMiddleware",
 ]
-
-TEST_MIDDLEWARE = [m for m in MIDDLEWARE if m != "todos.middleware.FCMAlarmMiddleware"]
 
 CRONJOBS = [
     ("0 8 * * *", "todos.jobs.send_morning_alarm"),
