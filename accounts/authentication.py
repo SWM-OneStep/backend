@@ -7,8 +7,12 @@ import jwt
 
 class CustomJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
-        raw_token = self.get_raw_token(self.get_header(request))
 
+        header = self.get_header(request)
+        if header is None:
+            return None
+
+        raw_token = self.get_raw_token(header)
         if raw_token is None:
             return None
 
