@@ -7,7 +7,6 @@ import jwt
 
 class CustomJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
-
         header = self.get_header(request)
         if header is None:
             return None
