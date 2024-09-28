@@ -22,6 +22,7 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
 
+CSRF_TRUSTED_ORIGINS = ["https://*.stepby.one"]
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
