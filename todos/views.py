@@ -590,7 +590,7 @@ class RecommendSubTodo(APIView):
         - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
         - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
         """  # noqa: E501
-        user_id = request.data.get("user_id")
+        user_id = request.user.id
         flag, message = UserLastUsage.check_rate_limit(
             user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
         )
