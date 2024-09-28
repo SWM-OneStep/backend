@@ -152,4 +152,29 @@ class Category(TimeStamp):
 class UserLastUsage(models.Model):
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(User, on_delete=models.PROTECT)
-    last_used_at = models.DateTimeField(null=True)
+    last_used_at = models.DateTimeField(null=False)
+
+    @classmethod
+    def check_rate_limit(cls, user_id: int, RATE_LIMIT_SECONDS: int):
+        try:
+            user = User.objects.get(id=user_id)
+            user_last_usage, created = cls.objects.get_or_create(
+                user_id=user, defaults={"last_used_at": timezone.now()}
+            )
+
+            if not created:
+                now = timezone.now()
+                if (
+                    user_last_usage.last_used_at
+                    + timezone.timedelta(seconds=RATE_LIMIT_SECONDS)
+                    > now
+                ):
+                    return False, "Rate limit exceeded"
+                else:
+                    user_last_usage.last_used_at = now
+                    user_last_usage.save(update_fields=["last_used_at"])
+                    return True, "Updated"
+            else:
+                return True, "Created"
+        except Exception as e:
+            return False, f"An error occurred: {str(e)}"

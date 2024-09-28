@@ -7,7 +7,7 @@ from rest_framework import serializers
 from accounts.models import User
 from todos.utils import validate_lexo_order
 
-from .models import Category, SubTodo, Todo, UserLastUsage
+from .models import Category, SubTodo, Todo
 
 
 class PatchOrderSerializer(serializers.Serializer):
@@ -258,9 +258,3 @@ class TodoSerializer(serializers.ModelSerializer):
         instance.updated_at = timezone.now()
         instance.save()
         return instance
-
-
-class UserLastUsageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserLastUsage
-        fields = ["user_id", "last_used_at"]
