@@ -161,7 +161,10 @@ class UserLastUsage(models.Model):
             user_last_usage, created = cls.objects.get_or_create(
                 user_id=user, defaults={"last_used_at": timezone.now()}
             )
-
+            if user.is_premium:
+                user_last_usage.last_used_at = timezone.now()
+                user_last_usage.save(update_fields=["last_used_at"])
+                return True, "Premium user"
             if not created:
                 now = timezone.now()
                 if (
@@ -176,5 +179,7 @@ class UserLastUsage(models.Model):
                     return True, "Updated"
             else:
                 return True, "Created"
+        except User.DoesNotExist:
+            return False, "User does not exist"
         except Exception as e:
             return False, f"An error occurred: {str(e)}"
