@@ -21,6 +21,15 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
+from todos.firebase_messaging import send_push_notification_device
+
+
+TODO_FCM_MESSAGE_TITLE = "Todo"
+TODO_FCM_MESSAGE_BODY = "Todo가 변경되었습니다."
+SUBTODO_FCM_MESSAGE_TITLE = "SubTodo"
+SUBTODO_FCM_MESSAGE_BODY = "SubTodo가 변경되었습니다."
+CATEGORY_FCM_MESSAGE_TITLE = "Category"
+CATEGORY_FCM_MESSAGE_BODY = "Category가 변경되었습니다."
 
 
 class TodoView(APIView):
@@ -55,6 +64,7 @@ class TodoView(APIView):
         serializer = TodoSerializer(context={"request": request}, data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(request.auth.get("device"), request.user, TODO_FCM_MESSAGE_TITLE, TODO_FCM_MESSAGE_BODY)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
@@ -163,6 +173,7 @@ class TodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(request.auth.get("device"), request.user, TODO_FCM_MESSAGE_TITLE, TODO_FCM_MESSAGE_BODY)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
@@ -205,6 +216,7 @@ class TodoView(APIView):
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        send_push_notification_device(request.auth.get("device"), request.user, TODO_FCM_MESSAGE_TITLE, TODO_FCM_MESSAGE_BODY)
         return Response(
             {"todo_id": todo.id, "message": "Todo deleted successfully"},
             status=status.HTTP_200_OK,
@@ -235,6 +247,7 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(request.auth.get("device"), request.user, SUBTODO_FCM_MESSAGE_TITLE, SUBTODO_FCM_MESSAGE_BODY)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
@@ -313,6 +326,7 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(request.auth.get("device"), request.user, SUBTODO_FCM_MESSAGE_TITLE, SUBTODO_FCM_MESSAGE_BODY)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(
@@ -353,6 +367,7 @@ class SubTodoView(APIView):
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        send_push_notification_device(request.auth.get("device"), request.user, SUBTODO_FCM_MESSAGE_TITLE, SUBTODO_FCM_MESSAGE_BODY)
         return Response(
             {
                 "subtodo_id": sub_todo.id,
@@ -386,6 +401,7 @@ class CategoryView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(request.auth.get("device"), request.user, CATEGORY_FCM_MESSAGE_TITLE, CATEGORY_FCM_MESSAGE_BODY)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(
             {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
@@ -439,6 +455,7 @@ class CategoryView(APIView):
         )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(request.auth.get("device"), request.user, CATEGORY_FCM_MESSAGE_TITLE, CATEGORY_FCM_MESSAGE_BODY)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(
@@ -505,6 +522,7 @@ class CategoryView(APIView):
         try:
             category = Category.objects.get_with_id(id=category_id)
             Category.objects.delete_instance(category)
+            send_push_notification_device(request.auth.get("device"), request.user, CATEGORY_FCM_MESSAGE_TITLE, CATEGORY_FCM_MESSAGE_BODY)
             return Response(
                 {
                     "category_id": category.id,
