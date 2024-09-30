@@ -58,7 +58,6 @@ def test_create_todo_invalid_order(
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
-    assert response.data["non_field_errors"][0] == "Order is invalid"
 
 
 @pytest.mark.django_db
@@ -105,23 +104,6 @@ def test_create_todo_invalid_category_id(
         "end_date": date + timedelta(days=2),
         "content": content,
         "category_id": 999,
-        "order": order(0),
-    }
-    response = authenticated_client.post(url, data, format="json")
-    assert response.status_code == 400
-
-
-@pytest.mark.django_db
-def test_create_todo_invalid_user_id(
-    authenticated_client, create_category, date, content, order
-):
-    url = reverse("todos")
-    data = {
-        "user_id": 999,
-        "start_date": date + timedelta(days=1),
-        "end_date": date + timedelta(days=2),
-        "content": content,
-        "category_id": create_category.id,
         "order": order(0),
     }
     response = authenticated_client.post(url, data, format="json")

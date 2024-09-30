@@ -62,16 +62,27 @@ class UserRetrieveView(APIView):
 
     def get(self, request):
         try:
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                }
+            )
             user = User.objects.get(username=request.user.username)
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            sentry_sdk.capture_exception(User.DoesNotExist())
+        except User.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
         except Exception as e:
             sentry_sdk.capture_exception(e)
-        return Response(
-            {"error": "User not found"}, status=status.HTTP_400_BAD_REQUEST
-        )
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def patch(self, request):
         """
@@ -83,13 +94,17 @@ class UserRetrieveView(APIView):
             user.save()
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            sentry_sdk.capture_exception(User.DoesNotExist())
+        except User.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-        return Response(
-            {"error": "User not found"}, status=status.HTTP_400_BAD_REQUEST
-        )
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AndroidClientView(APIView):

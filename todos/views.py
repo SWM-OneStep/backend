@@ -1,6 +1,7 @@
 # todos/views.py
 import json
 
+import sentry_sdk
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
@@ -21,6 +22,7 @@ from todos.swagger_serializers import (
     SwaggerSubTodoPatchSerializer,
     SwaggerTodoPatchSerializer,
 )
+from todos.utils import sentry_validation_error, set_sentry_user
 
 
 class TodoView(APIView):
@@ -36,29 +38,42 @@ class TodoView(APIView):
     def post(self, request):
         """
         - 이 함수는 todo를 생성하는 함수입니다.
-        - 입력 : user_id, start_date, deadline, content, category, parent_id
+        - 입력 : start_date, end_date, content, category, parent_id
         - content 는 암호화 되어야 합니다.
-        - deadline 은 항상 start_date 와 같은 날이거나 그 이후여야합니다
         - category_id 는 category에 존재해야합니다.
         - content는 1자 이상 50자 이하여야합니다.
-        - user_id 는 user 테이블에 존재해야합니다.
-        - parent_id는 todo 테이블에 이미 존재해야합니다.
-        - parent_id가 없는 경우 null로 처리합니다.
-        - parent_id는 자기 자신을 참조할 수 없습니다.
 
         구현해야할 내용
         - order 순서 정리
         - 암호화
         """
-        data = request.data
-        # category_id validation
-        serializer = TodoSerializer(context={"request": request}, data=data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        try:
+            data = request.data.copy()
+            data["user_id"] = request.user.id
+
+            set_sentry_user(request.user)
+            serializer = TodoSerializer(
+                context={"request": request}, data=data
+            )
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response(
+                    serializer.data, status=status.HTTP_201_CREATED
+                )
+            else:
+                sentry_validation_error(
+                    "TodoCreate", serializer.errors, request.user.id
+                )
+                return Response(
+                    {"error": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @swagger_auto_schema(
         tags=["Todo"],
@@ -93,20 +108,15 @@ class TodoView(APIView):
     def get(self, request):
         """
         - 이 함수는 daily todo list를 불러오는 함수입니다.
-        - 입력 :  user_id(필수), start_date, end_date
+        - 입력 :  start_date, end_date
         - start_date와 end_date가 없는 경우 user_id에 해당하는 모든 todo를 불러옵니다.
         - start_date와 end_date가 있는 경우 user_id에 해당하는 todo 중 start_date와 end_date 사이에 있는 todo를 불러옵니다.
         - order 의 순서로 정렬합니다.
         """  # noqa: E501
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
-        user_id = request.GET.get("user_id")
-
-        if user_id is None:
-            return Response(
-                {"error": "user_id must be provided"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        user_id = request.user.id
+        set_sentry_user(request.user)
         try:
             if (
                 start_date is not None and end_date is not None
@@ -114,11 +124,15 @@ class TodoView(APIView):
                 todos = Todo.objects.get_daily_with_date(
                     user_id=user_id, start_date=start_date, end_date=end_date
                 )
-            else:  # start_date and end_date are None
+                sentry_sdk.capture_message("Get inbox todos", level="info")
+            else:
                 todos = Todo.objects.get_with_user_id(
                     user_id=user_id
                 ).order_by("order")
-        except Todo.DoesNotExist:
+
+                sentry_sdk.capture_message("Get daily todos", level="info")
+        except Todo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -146,7 +160,8 @@ class TodoView(APIView):
         todo_id = request.data.get("todo_id")
         try:
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
-        except Todo.DoesNotExist:
+        except Todo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -164,9 +179,14 @@ class TodoView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        else:
+            sentry_validation_error(
+                "TodoPatch", serializer.errors, request.user.id
+            )
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @swagger_auto_schema(
         tags=["Todo"],
@@ -196,19 +216,20 @@ class TodoView(APIView):
             subtodos = SubTodo.objects.get_subtodos(todo.id)
             SubTodo.objects.delete_many(subtodos)
             Todo.objects.delete_instance(todo)
-        except Todo.DoesNotExist:
             return Response(
-                {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
+                {"todo_id": todo.id, "message": "Todo deleted successfully"},
+                status=status.HTTP_200_OK,
+            )
+        except Todo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "Todo not found"}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-
-        return Response(
-            {"todo_id": todo.id, "message": "Todo deleted successfully"},
-            status=status.HTTP_200_OK,
-        )
 
 
 class SubTodoView(APIView):
@@ -235,10 +256,16 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            sentry_sdk.capture_message("SubTodo created", level="info")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        else:
+            sentry_validation_error(
+                "SubTodoCreate", serializer.errors, request.user.id
+            )
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @swagger_auto_schema(
         tags=["SubTodo"],
@@ -263,14 +290,19 @@ class SubTodoView(APIView):
         todo_id = request.GET.get("todo_id")
         try:
             sub_todos = SubTodo.objects.get_subtodos(todo_id=todo_id)
-        except SubTodo.DoesNotExist:
+            serializer = SubTodoSerializer(sub_todos, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except SubTodo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "SubTodo not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        serializer = SubTodoSerializer(sub_todos, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     @swagger_auto_schema(
         tags=["SubTodo"],
@@ -313,11 +345,16 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            sentry_sdk.capture_message("SubTodo updated", level="info")
             return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        else:
+            sentry_validation_error(
+                "SubTodoPatch", serializer.errors, request.user.id
+            )
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @swagger_auto_schema(
         tags=["SubTodo"],
@@ -343,23 +380,25 @@ class SubTodoView(APIView):
         try:
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
-        except SubTodo.DoesNotExist:
+            sentry_sdk.capture_message("SubTodo deleted", level="info")
+            return Response(
+                {
+                    "subtodo_id": sub_todo.id,
+                    "message": "SubTodo deleted successfully",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except SubTodo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "SubTodo not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-
-        return Response(
-            {
-                "subtodo_id": sub_todo.id,
-                "message": "SubTodo deleted successfully",
-            },
-            status=status.HTTP_200_OK,
-        )
 
 
 class CategoryView(APIView):
@@ -374,11 +413,12 @@ class CategoryView(APIView):
     def post(self, request):
         """
         - 이 함수는 category를 생성하는 함수입니다.
-        - 입력 : user_id, title, color
+        - 입력 : title, color
         - title은 1자 이상 50자 이하여야합니다.
         - color는 7자여야합니다.
         """
-        data = request.data
+        data = request.data.copy()
+        data["user_id"] = request.user.id
 
         serializer = CategorySerializer(
             context={"request": request}, data=data
@@ -387,9 +427,14 @@ class CategoryView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        else:
+            sentry_validation_error(
+                "CategoryCreate", serializer.errors, request.user.id
+            )
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @swagger_auto_schema(
         tags=["Category"],
@@ -420,10 +465,16 @@ class CategoryView(APIView):
             category = Category.objects.get(
                 id=category_id, deleted_at__isnull=True
             )
-        except Category.DoesNotExist:
+        except Category.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Category not found"},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
         if "order" in request.data:
@@ -439,11 +490,16 @@ class CategoryView(APIView):
         )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            sentry_sdk.capture_message("Category updated", level="info")
             return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(
-            {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        else:
+            sentry_validation_error(
+                "CategoryPatch", serializer.errors, request.user.id
+            )
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @swagger_auto_schema(
         tags=["Category"],
@@ -462,24 +518,25 @@ class CategoryView(APIView):
     def get(self, request):
         """
         - 이 함수는 category list를 불러오는 함수입니다.
-        - 입력 : user_id(필수)
+        - 입력 : 없음
         - user_id에 해당하는 category list를 불러옵니다.
         """
-        user_id = request.GET.get("user_id")
-        if user_id is None:
-            return Response(
-                {"error": "user_id must be provided"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         try:
+            user_id = request.user.id
             categories = Category.objects.get_with_user_id(user_id=user_id)
-        except Category.DoesNotExist:
+            serializer = CategorySerializer(categories, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Category.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Category not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        serializer = CategorySerializer(categories, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     @swagger_auto_schema(
         tags=["Category"],
@@ -501,8 +558,16 @@ class CategoryView(APIView):
         - category_id에 해당하는 category의 deleted_at 필드를 현재 시간으로 업데이트합니다.
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 category입니다.
         """  # noqa: E501
-        category_id = request.data.get("category_id")
         try:
+            category_id = request.data.get("category_id")
+            if category_id is None:
+                sentry_sdk.capture_message(
+                    "Category_id not provided", level="error"
+                )
+                return Response(
+                    {"error": "category_id must be provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             category = Category.objects.get_with_id(id=category_id)
             Category.objects.delete_instance(category)
             return Response(
@@ -512,12 +577,14 @@ class CategoryView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
-        except Category.DoesNotExist:
+        except Category.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Category not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -543,24 +610,32 @@ class InboxView(APIView):
     def get(self, request):
         """
         - 이 함수는 daily todo list를 불러오는 함수입니다.
-        - 입력 :  user_id(필수)
+        - 입력 :  없음
         - order 의 순서로 정렬합니다.
         """
-        user_id = request.GET.get("user_id")
-
-        if user_id is None:
-            return Response(
-                {"error": "user_id must be provided"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         try:
+            user_id = request.user.id
+            if user_id is None:
+                sentry_sdk.capture_message(
+                    "User_id not provided", level="error"
+                )
+                return Response(
+                    {"error": "user_id must be provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             todos = Todo.objects.get_inbox(user_id=user_id)
-        except Todo.DoesNotExist:
+            serializer = GetTodoSerializer(todos, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Todo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Inbox is Empty"}, status=status.HTTP_404_NOT_FOUND
             )
-        serializer = GetTodoSerializer(todos, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class RecommendSubTodo(APIView):
@@ -624,15 +699,19 @@ class RecommendSubTodo(APIView):
                 response_format={"type": "json_object"},
             )
 
-        except Todo.DoesNotExist:
+        except Todo.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-
+        sentry_sdk.capture_message(
+            "SubTodo recommended", level="info", extra={"todo_id": todo.id}
+        )
         return Response(
             json.loads(completion.choices[0].message.content),
             status=status.HTTP_200_OK,
