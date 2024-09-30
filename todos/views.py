@@ -117,6 +117,12 @@ class TodoView(APIView):
         end_date = request.GET.get("end_date")
         user_id = request.user.id
         set_sentry_user(request.user)
+        if user_id is None:
+            sentry_sdk.capture_message("User_id not provided", level="error")
+            return Response(
+                {"error": "user_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             if (
                 start_date is not None and end_date is not None
@@ -157,7 +163,14 @@ class TodoView(APIView):
                 "updated_order" : "0|asdf:"
             }
         """  # noqa: E501
+        set_sentry_user(request.user)
         todo_id = request.data.get("todo_id")
+        if todo_id is None:
+            sentry_sdk.capture_message("Todo_id not provided", level="error")
+            return Response(
+                {"error": "todo_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             todo = Todo.objects.get(id=todo_id, deleted_at__isnull=True)
         except Todo.DoesNotExist as e:
@@ -209,8 +222,14 @@ class TodoView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 todo입니다.
         - 해당 todo 에 속한 subtodo 도 전부 delete 를 해야함
         """  # noqa: E501
+        set_sentry_user(request.user)
         todo_id = request.data.get("todo_id")
-
+        if todo_id is None:
+            sentry_sdk.capture_message("Todo_id not provided", level="error")
+            return Response(
+                {"error": "todo_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             todo = Todo.objects.get_with_id(id=todo_id)
             subtodos = SubTodo.objects.get_subtodos(todo.id)
@@ -249,6 +268,7 @@ class SubTodoView(APIView):
         - content 는 암호화 되어야 합니다(// 미정)
         - date 는 parent의 start_date와 end_date의 사이여야 합니다.
         """
+        set_sentry_user(request.user)
         data = request.data
         serializer = SubTodoSerializer(
             context={"request": request}, data=data, many=True
@@ -287,7 +307,14 @@ class SubTodoView(APIView):
         - 입력 : todo_id
         - parent_id에 해당하는 sub todo list를 불러옵니다.
         """
+        set_sentry_user(request.user)
         todo_id = request.GET.get("todo_id")
+        if todo_id is None:
+            sentry_sdk.capture_message("Todo_id not provided", level="error")
+            return Response(
+                {"error": "todo_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             sub_todos = SubTodo.objects.get_subtodos(todo_id=todo_id)
             serializer = SubTodoSerializer(sub_todos, many=True)
@@ -322,7 +349,16 @@ class SubTodoView(APIView):
                 "updated_order" : "0|asdf:"
             }
         """
+        set_sentry_user(request.user)
         subtodo_id = request.data.get("subtodo_id")
+        if subtodo_id is None:
+            sentry_sdk.capture_message(
+                "SubTodo_id not provided", level="error"
+            )
+            return Response(
+                {"error": "subtodo_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             sub_todo = SubTodo.objects.get(
                 id=subtodo_id, deleted_at__isnull=True
@@ -376,7 +412,16 @@ class SubTodoView(APIView):
         - subtodo_id에 해당하는 sub todo의 deleted_at 필드를 현재 시간으로 업데이트합니다.
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 sub todo입니다.
         """  # noqa: E501
+        set_sentry_user(request.user)
         subtodo_id = request.data.get("subtodo_id")
+        if subtodo_id is None:
+            sentry_sdk.capture_message(
+                "SubTodo_id not provided", level="error"
+            )
+            return Response(
+                {"error": "subtodo_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
@@ -417,22 +462,32 @@ class CategoryView(APIView):
         - title은 1자 이상 50자 이하여야합니다.
         - color는 7자여야합니다.
         """
-        data = request.data.copy()
-        data["user_id"] = request.user.id
+        set_sentry_user(request.user)
+        try:
+            data = request.data.copy()
+            data["user_id"] = request.user.id
 
-        serializer = CategorySerializer(
-            context={"request": request}, data=data
-        )
-
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            sentry_validation_error(
-                "CategoryCreate", serializer.errors, request.user.id
+            serializer = CategorySerializer(
+                context={"request": request}, data=data
             )
+
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response(
+                    serializer.data, status=status.HTTP_201_CREATED
+                )
+            else:
+                sentry_validation_error(
+                    "CategoryCreate", serializer.errors, request.user.id
+                )
+                return Response(
+                    {"error": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return Response(
-                {"error": serializer.errors},
+                {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -454,7 +509,16 @@ class CategoryView(APIView):
                 "updated_order" : "0|asdf:"
             }
         """
+        set_sentry_user(request.user)
         category_id = request.data.get("category_id")
+        if category_id is None:
+            sentry_sdk.capture_message(
+                "Category_id not provided", level="error"
+            )
+            return Response(
+                {"error": "category_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if "user_id" in request.data:
             return Response(
                 {"error": "user_id cannot be updated"},
@@ -521,8 +585,17 @@ class CategoryView(APIView):
         - 입력 : 없음
         - user_id에 해당하는 category list를 불러옵니다.
         """
+        set_sentry_user(request.user)
         try:
             user_id = request.user.id
+            if user_id is None:
+                sentry_sdk.capture_message(
+                    "User_id not provided", level="error"
+                )
+                return Response(
+                    {"error": "user_id must be provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             categories = Category.objects.get_with_user_id(user_id=user_id)
             serializer = CategorySerializer(categories, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -559,6 +632,7 @@ class CategoryView(APIView):
         - deleted_at 필드가 null이 아닌 경우 이미 삭제된 category입니다.
         """  # noqa: E501
         try:
+            set_sentry_user(request.user)
             category_id = request.data.get("category_id")
             if category_id is None:
                 sentry_sdk.capture_message(
@@ -614,6 +688,7 @@ class InboxView(APIView):
         - order 의 순서로 정렬합니다.
         """
         try:
+            set_sentry_user(request.user)
             user_id = request.user.id
             if user_id is None:
                 sentry_sdk.capture_message(
@@ -663,7 +738,14 @@ class RecommendSubTodo(APIView):
         - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
         - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
         """  # noqa: E501
+        set_sentry_user(request.user)
         todo_id = request.GET.get("todo_id")
+        if todo_id is None:
+            sentry_sdk.capture_message("Todo_id not provided", level="error")
+            return Response(
+                {"error": "todo_id must be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             todo = Todo.objects.get_with_id(id=todo_id)
             completion = client.chat.completions.create(
@@ -698,6 +780,13 @@ class RecommendSubTodo(APIView):
                 ],
                 response_format={"type": "json_object"},
             )
+            sentry_sdk.capture_message(
+                "SubTodo recommended", level="info", extra={"todo_id": todo.id}
+            )
+            return Response(
+                json.loads(completion.choices[0].message.content),
+                status=status.HTTP_200_OK,
+            )
 
         except Todo.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
@@ -709,10 +798,3 @@ class RecommendSubTodo(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-        sentry_sdk.capture_message(
-            "SubTodo recommended", level="info", extra={"todo_id": todo.id}
-        )
-        return Response(
-            json.loads(completion.choices[0].message.content),
-            status=status.HTTP_200_OK,
-        )
