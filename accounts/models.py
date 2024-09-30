@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
@@ -47,11 +48,24 @@ class User(AbstractUser, TimeStamp):
         try:
             user = User.objects.get(username=email)
         except User.DoesNotExist:
+            sentry_sdk.capture_message(
+                "User does not exist. Creating new user"
+            )
             user = User.objects.create(username=email, password="")
             send_welcome_email(
                 email,
                 user.username,
             )
+            sentry_sdk.capture_message("Sent welcome email", level="info")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            sentry_sdk.capture_message(
+                "Failed to get or create user", level="error"
+            )
+            raise e
+
+        sentry_sdk.set_user({"id": user.id})
+        sentry_sdk.capture_message("Get User", level="info")
         return user
 
 
@@ -85,14 +99,18 @@ class PatchNote(models.Model):
             deleted_at__isnull=True, is_staff=False
         ).values_list("username", flat=True)
         subject = f"OneStep's New Patch Note: {self.title}"
-
-        # HTML 파일 내용 읽기
-        with open(self.html_file.path, "r") as f:
-            message = f.read()
-
-        send_email(
-            to_email_address=list(user_email_list),
-            subject=subject,
-            message=message,
+        sentry_sdk.capture_message(
+            f"Patch note title : {self.title}, Sending email to users"
         )
-        return user_email_list
+        try:
+            # HTML 파일 내용 읽기
+            with open(self.html_file.path, "r") as f:
+                message = f.read()
+            send_email(
+                to_email_address=list(user_email_list),
+                subject=subject,
+                message=message,
+            )
+            return user_email_list
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
