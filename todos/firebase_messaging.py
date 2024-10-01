@@ -5,11 +5,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'onestep_be.settings')
 from django.conf import settings
 from dataclasses import dataclass
 from fcm_django.models import FCMDevice
+from django.contrib.auth import get_user_model
 
 
-firebase_info = eval(settings.SECRETS.get("FIREBASE"))
-cred = credentials.Certificate(firebase_info)
-firebase_admin.initialize_app(cred)
+User = get_user_model()
 
 
 @dataclass
@@ -19,6 +18,23 @@ class PushNotificationStatus:
 
 PUSH_NOTIFICATION_SUCCESS = PushNotificationStatus("success")
 PUSH_NOTIFICATION_ERROR = PushNotificationStatus("error")
+
+
+def send_push_notification_device(token, target_user, title, body):
+    target_device = FCMDevice.objects.filter(user=target_user).exclude(registration_id=token)
+    if target_device.exists():
+        target_device = target_device.first()
+        try:
+            target_device.send_message(
+                messaging.Message(
+                    notification=messaging.Notification(
+                        title=title,
+                        body=body,
+                    ),
+                )
+            )
+        except Exception:
+            pass
 
 
 def send_push_notification(token, title, body):

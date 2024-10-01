@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onestep_be.settings import client
+from todos.firebase_messaging import send_push_notification_device
 from todos.models import Category, SubTodo, Todo
 from todos.serializers import (
     CategorySerializer,
@@ -23,6 +24,13 @@ from todos.swagger_serializers import (
     SwaggerTodoPatchSerializer,
 )
 from todos.utils import sentry_validation_error, set_sentry_user
+
+TODO_FCM_MESSAGE_TITLE = "Todo"
+TODO_FCM_MESSAGE_BODY = "Todo가 변경되었습니다."
+SUBTODO_FCM_MESSAGE_TITLE = "SubTodo"
+SUBTODO_FCM_MESSAGE_BODY = "SubTodo가 변경되었습니다."
+CATEGORY_FCM_MESSAGE_TITLE = "Category"
+CATEGORY_FCM_MESSAGE_BODY = "Category가 변경되었습니다."
 
 
 class TodoView(APIView):
@@ -47,6 +55,7 @@ class TodoView(APIView):
         - order 순서 정리
         - 암호화
         """
+
         try:
             data = request.data.copy()
             data["user_id"] = request.user.id
@@ -57,6 +66,13 @@ class TodoView(APIView):
             )
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
+
+                send_push_notification_device(
+                    request.auth.get("device"),
+                    request.user,
+                    TODO_FCM_MESSAGE_TITLE,
+                    TODO_FCM_MESSAGE_BODY,
+                )
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED
                 )
@@ -191,6 +207,12 @@ class TodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                TODO_FCM_MESSAGE_TITLE,
+                TODO_FCM_MESSAGE_BODY,
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             sentry_validation_error(
@@ -235,6 +257,12 @@ class TodoView(APIView):
             subtodos = SubTodo.objects.get_subtodos(todo.id)
             SubTodo.objects.delete_many(subtodos)
             Todo.objects.delete_instance(todo)
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                TODO_FCM_MESSAGE_TITLE,
+                TODO_FCM_MESSAGE_BODY,
+            )
             return Response(
                 {"todo_id": todo.id, "message": "Todo deleted successfully"},
                 status=status.HTTP_200_OK,
@@ -276,7 +304,16 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+
             sentry_sdk.capture_message("SubTodo created", level="info")
+
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                SUBTODO_FCM_MESSAGE_TITLE,
+                SUBTODO_FCM_MESSAGE_BODY,
+            )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             sentry_validation_error(
@@ -381,7 +418,16 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+
             sentry_sdk.capture_message("SubTodo updated", level="info")
+
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                SUBTODO_FCM_MESSAGE_TITLE,
+                SUBTODO_FCM_MESSAGE_BODY,
+            )
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             sentry_validation_error(
@@ -426,6 +472,13 @@ class SubTodoView(APIView):
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
             sentry_sdk.capture_message("SubTodo deleted", level="info")
+
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                SUBTODO_FCM_MESSAGE_TITLE,
+                SUBTODO_FCM_MESSAGE_BODY,
+            )
             return Response(
                 {
                     "subtodo_id": sub_todo.id,
@@ -473,6 +526,13 @@ class CategoryView(APIView):
 
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
+                send_push_notification_device(
+                    request.auth.get("device"),
+                    request.user,
+                    CATEGORY_FCM_MESSAGE_TITLE,
+                    CATEGORY_FCM_MESSAGE_BODY,
+                )
+
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED
                 )
@@ -554,7 +614,15 @@ class CategoryView(APIView):
         )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+
             sentry_sdk.capture_message("Category updated", level="info")
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                CATEGORY_FCM_MESSAGE_TITLE,
+                CATEGORY_FCM_MESSAGE_BODY,
+            )
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             sentry_validation_error(
@@ -644,6 +712,12 @@ class CategoryView(APIView):
                 )
             category = Category.objects.get_with_id(id=category_id)
             Category.objects.delete_instance(category)
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                CATEGORY_FCM_MESSAGE_TITLE,
+                CATEGORY_FCM_MESSAGE_BODY,
+            )
             return Response(
                 {
                     "category_id": category.id,
@@ -730,7 +804,7 @@ class RecommendSubTodo(APIView):
         operation_summary="Recommend subtodo",
         responses={200: SubTodoSerializer},
     )
-    def get(self, request):
+    async def get(self, request):
         """
         - 이 함수는 sub todo를 추천하는 함수입니다.
         - 입력 : todo_id, recommend_category
