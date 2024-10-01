@@ -598,7 +598,7 @@ class RecommendSubTodo(APIView):
         operation_summary="Recommend subtodo",
         responses={200: SubTodoSerializer},
     )
-    def get(self, request):
+    async def get(self, request):
         """
         - 이 함수는 sub todo를 추천하는 함수입니다.
         - 입력 : todo_id, recommend_category
