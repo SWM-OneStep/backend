@@ -4,12 +4,12 @@ import json
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onestep_be.settings import client
-from todos.models import Category, SubTodo, Todo
+from todos.models import Category, SubTodo, Todo, UserLastUsage
 from todos.serializers import (
     CategorySerializer,
     GetTodoSerializer,
@@ -30,6 +30,8 @@ SUBTODO_FCM_MESSAGE_TITLE = "SubTodo"
 SUBTODO_FCM_MESSAGE_BODY = "SubTodo가 변경되었습니다."
 CATEGORY_FCM_MESSAGE_TITLE = "Category"
 CATEGORY_FCM_MESSAGE_BODY = "Category가 변경되었습니다."
+
+RATE_LIMIT_SECONDS = 10
 
 
 class TodoView(APIView):
@@ -582,7 +584,7 @@ class InboxView(APIView):
 
 
 class RecommendSubTodo(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
@@ -606,6 +608,14 @@ class RecommendSubTodo(APIView):
         - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
         - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
         """  # noqa: E501
+        user_id = request.user.id
+        flag, message = UserLastUsage.check_rate_limit(
+            user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
+        )
+        if flag is False:
+            return Response(
+                {"error": message}, status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
         todo_id = request.GET.get("todo_id")
         try:
             todo = Todo.objects.get_with_id(id=todo_id)

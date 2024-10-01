@@ -2,6 +2,7 @@
 # This file is used to define fixtures that can be used in multiple test files
 
 import random
+from unittest.mock import Mock
 
 import pytest
 from faker import Faker
@@ -112,3 +113,21 @@ def category():
         ("feedback", "일반 피드백"),
     ]
     return random.choice(CATEGORY_CHOICES)[0]
+
+
+@pytest.fixture
+def llm():
+    mock_response = Mock()
+    mock_response.choices = [
+        Mock(
+            message=Mock(
+                content=(
+                    '{"id": 1, "content": "subtask", "start_date": "2024-09-01", '  # noqa
+                    '"end_date": "2024-09-24", "category_id": 1, "order": 1, '
+                    '"is_completed": false, "children": []}'
+                )
+            )
+        )
+    ]
+
+    return mock_response
