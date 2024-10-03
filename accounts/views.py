@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from fcm_django.models import FCMDevice
@@ -27,6 +28,7 @@ class GoogleLogin(APIView):
         token = request.data.get("token")
         device_token = request.data.get("device_token")
         if not device_token or not token:
+            sentry_sdk.capture_exception(LoginException())
             raise LoginException()
         try:
             idinfo = id_token.verify_oauth2_token(
@@ -35,7 +37,6 @@ class GoogleLogin(APIView):
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
                 user = User.get_or_create_user(email)
-
                 FCMDevice.objects.get_or_create(
                     user=user, registration_id=device_token
                 )
@@ -48,6 +49,7 @@ class GoogleLogin(APIView):
                     status=status.HTTP_200_OK,
                 )
         except Exception as e:
+            sentry_sdk.capture_exception(e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -59,27 +61,73 @@ class UserRetrieveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = User.objects.get(username=request.user.username)
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+        try:
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                }
+            )
+            user = User.objects.get(username=request.user.username)
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def patch(self, request):
         """
         입력 : is_subscribe (Boolean), is_premium (Boolean)
         """
-        user = User.objects.get(username=request.user.username)
-        if request.data.get("is_premium"):
-            user.is_premium = request.data.get("is_premium")
-        if request.data.get("is_subscribed"):
-            user.is_subscribed = request.data.get("is_subscribed")
-        user.save()
-        serializer = UserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            user = request.user
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                }
+            )
+            if request.data.get("is_premium"):
+                user.is_premium = request.data.get("is_premium")
+            if request.data.get("is_subscribed"):
+                user.is_subscribed = request.data.get("is_subscribed")
+            user.save()
+            serializer = UserSerializer(user)
+            sentry_sdk.capture_message("User updated", level="info")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AndroidClientView(APIView):
     def get(self, request):
-        ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
-        return Response(
-            {"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK
-        )
+        try:
+            ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
+            return Response(
+                {"android_client_id": ANDROID_CLIENT_ID},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "Android client id not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

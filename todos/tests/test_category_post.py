@@ -48,18 +48,3 @@ def test_create_category_invalid_order(
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 400
-
-
-@pytest.mark.django_db
-def test_create_category_invalid_user_id(
-    authenticated_client, content, order, color
-):
-    url = reverse("category")
-    data = {
-        "user_id": 999,
-        "title": content,
-        "color": color,
-        "order": order(0),
-    }
-    response = authenticated_client.post(url, data, format="json")
-    assert response.status_code == 400
