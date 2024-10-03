@@ -42,6 +42,7 @@ class User(AbstractUser, TimeStamp):
         default=SocialProvider.GOOGLE,
     )
     is_subscribed = models.BooleanField(default=False)
+    is_premium = models.BooleanField(default=False)
 
     @classmethod
     def get_or_create_user(self, email):

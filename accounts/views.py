@@ -86,13 +86,23 @@ class UserRetrieveView(APIView):
 
     def patch(self, request):
         """
-        입력 : is_subscribe (Boolean)
+        입력 : is_subscribe (Boolean), is_premium (Boolean)
         """
         try:
             user = request.user
-            user.is_subscribed = request.data.get("is_subscribed")
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                }
+            )
+            if request.data.get("is_premium"):
+                user.is_premium = request.data.get("is_premium")
+            if request.data.get("is_subscribed"):
+                user.is_subscribed = request.data.get("is_subscribed")
             user.save()
             serializer = UserSerializer(user)
+            sentry_sdk.capture_message("User updated", level="info")
             return Response(serializer.data, status=status.HTTP_200_OK)
         except User.DoesNotExist as e:
             sentry_sdk.capture_exception(e)

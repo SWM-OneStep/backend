@@ -43,4 +43,5 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "social_provider",
             "is_subscribed",
+            "is_premium",
         ]

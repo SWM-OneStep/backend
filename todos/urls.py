@@ -14,5 +14,5 @@ urlpatterns = [
     path("sub/", SubTodoView.as_view(), name="subtodos"),
     path("category/", CategoryView.as_view(), name="category"),
     path("inbox/", InboxView.as_view(), name="inbox"),
-    path("recommend/", RecommendSubTodo.as_view(), name="Recommend"),
+    path("recommend/", RecommendSubTodo.as_view(), name="recommend"),
 ]

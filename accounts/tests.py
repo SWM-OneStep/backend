@@ -31,12 +31,14 @@ def test_user_info(create_user):
             "username": create_user.username,
             "social_provider": "GOOGLE",
             "is_subscribed": False,
+            "is_premium": False,
         }
 
 
 @pytest.mark.django_db
 def test_update_user_is_subscribed(
-    create_user, authenticated_client, content, order, color
+    create_user,
+    authenticated_client,
 ):
     url = reverse("user")  # URL name for the categoryView patch method
     data = {
@@ -45,6 +47,20 @@ def test_update_user_is_subscribed(
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
     assert response.data["is_subscribed"]
+
+
+@pytest.mark.django_db
+def test_update_user_is_premium(
+    create_user,
+    authenticated_client,
+):
+    url = reverse("user")  # URL name for the categoryView patch method
+    data = {
+        "is_premium": True,
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["is_premium"]
 
 
 @pytest.mark.django_db
