@@ -41,10 +41,7 @@ class TodosManager(models.Manager):
                     ),
                 )
             )
-            .filter(
-                Q(end_date__isnull=True, start_date__isnull=True)
-                | Q(subtodos_count__gt=0)
-            )
+            .filter(Q(date__isnull=True) | Q(subtodos_count__gt=0))
             .prefetch_related(
                 Prefetch(
                     "subtodos",
@@ -59,18 +56,8 @@ class TodosManager(models.Manager):
     def get_daily_with_date(self, user_id, start_date, end_date):
         return (
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
-            .filter(
-                (
-                    Q(start_date__isnull=True)
-                    | Q(start_date__lte=end_date, start_date__gte=start_date)
-                )
-                | (
-                    Q(end_date__isnull=True)
-                    | Q(end_date__lte=end_date, end_date__gte=start_date)
-                )
-                | (Q(start_date__lte=start_date, end_date__gte=end_date))
-            )
-            .exclude(start_date__isnull=True, end_date__isnull=True)
+            .filter(Q(date__gte=start_date, date__lte=end_date))
+            .exclude(date__isnull=True)
             .order_by("order")
             .prefetch_related(
                 Prefetch(
@@ -85,7 +72,7 @@ class TodosManager(models.Manager):
     def get_daily(self, user_id):
         return (
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
-            .filter(Q(end_date__isnull=False) | Q(start_date__isnull=False))
+            .filter(date__isnull=False)
             .order_by("order")
             .prefetch_related(
                 Prefetch(
