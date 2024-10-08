@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
@@ -18,16 +19,27 @@ class TodosManager(models.Manager):
         return instances
 
     def get_queryset(self):
-        return super().get_queryset().filter(deleted_at__isnull=True)
+        super().get_queryset().filter(deleted_at__isnull=True)
 
     def get_with_id(self, id):
-        return self.get_queryset().filter(id=id).first()
+        instance = self.get_queryset().filter(id=id).first()
+        if instance is None:
+            raise ObjectDoesNotExist(f"No object found with id {id}")
+        return instance
 
     def get_with_user_id(self, user_id):
-        return self.get_queryset().filter(user_id=user_id).order_by("order")
+        instance = (
+            self.get_queryset().filter(user_id=user_id).order_by("order")
+        )
+        if instance is None:
+            raise ObjectDoesNotExist(f"No object found with user_id {user_id}")
+        return instance
 
     def get_subtodos(self, todo_id):
-        return self.get_queryset().filter(todo=todo_id).order_by("order")
+        instance = self.get_queryset().filter(todo=todo_id).order_by("order")
+        if instance is None:
+            raise ObjectDoesNotExist(f"No object found with todo_id {todo_id}")
+        return instance
 
     def get_inbox(self, user_id):
         return (
