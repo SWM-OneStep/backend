@@ -136,6 +136,11 @@ def category():
 
 
 @pytest.fixture
+def due_time():
+    return fake.time(pattern="%H:%M:%S")
+
+
+@pytest.fixture
 def llm():
     mock_response = Mock()
     mock_response.choices = [

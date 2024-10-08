@@ -79,6 +79,7 @@ class SubTodoSerializer(serializers.ModelSerializer):
         queryset=Todo.objects.all(), required=True
     )
     date = serializers.DateField(required=False, allow_null=True)
+    due_time = serializers.TimeField(required=False, allow_null=True)
     order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False)
     patch_order = PatchOrderSerializer(required=False)
@@ -149,8 +150,8 @@ class GetTodoSerializer(serializers.ModelSerializer):
             "id",
             "content",
             "category_id",
-            "start_date",
-            "end_date",
+            "date",
+            "due_time",
             "user_id",
             "order",
             "is_completed",
@@ -166,8 +167,8 @@ class TodoSerializer(serializers.ModelSerializer):
     user_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), required=True
     )
-    start_date = serializers.DateField(allow_null=True, required=False)
-    end_date = serializers.DateField(allow_null=True, required=False)
+    date = serializers.DateField(allow_null=True, required=False)
+    due_time = serializers.TimeField(allow_null=True, required=False)
     order = serializers.CharField(max_length=255)
     is_completed = serializers.BooleanField(default=False, required=False)
     patch_order = PatchOrderSerializer(required=False)
@@ -178,8 +179,8 @@ class TodoSerializer(serializers.ModelSerializer):
             "id",
             "content",
             "category_id",
-            "start_date",
-            "end_date",
+            "date",
+            "due_time",
             "user_id",
             "order",
             "is_completed",
@@ -210,13 +211,6 @@ class TodoSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         request = self.context["request"]
-        start_date = data.get("start_date")
-        end_date = data.get("end_date")
-
-        if start_date and end_date and start_date > end_date:
-            raise serializers.ValidationError(
-                "Start date should be less than end date"
-            )
 
         if request.method == "PATCH":
             if not any(
@@ -224,14 +218,14 @@ class TodoSerializer(serializers.ModelSerializer):
                 for field in [
                     "content",
                     "category_id",
-                    "start_date",
-                    "end_date",
+                    "date",
+                    "due_time",
                     "is_completed",
                     "order",
                 ]
             ):
                 raise serializers.ValidationError(
-                    "At least one of content, category_id, start_date, end_date, is_completed must be provided"  # noqa : E501
+                    "At least one of content, category_id, date, due_time, is_completed must be provided"  # noqa : E501
                 )
             if data.get("user_id"):
                 raise serializers.ValidationError("User cannot be updated")

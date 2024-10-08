@@ -43,7 +43,7 @@ class SubTodoAdmin(admin.ModelAdmin):
     list_display = [
         "id",
         "content",
-        "todo",
+        "todo_id",
         "due_time",
         "order",
         "is_completed",
@@ -55,7 +55,7 @@ class SubTodoAdmin(admin.ModelAdmin):
                 "fields": [
                     "id",
                     "content",
-                    "todo",
+                    "todo_id",
                     "due_time",
                     "order",
                     "is_completed",
