@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     "todos",
     "feedback",
     "rest_framework_simplejwt",
-    'fcm_django',
+    "fcm_django",
     "django_crontab",
 ]
 

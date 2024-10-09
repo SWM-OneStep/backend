@@ -39,38 +39,58 @@ def authenticated_client(create_user):
 
 
 @pytest.fixture
-def create_category(db, create_user):
+def create_category(
+    db, create_user, title="Test Category", color="#FFFFFF", order="0|hzzzzz:"
+):
     category = Category.objects.create(
         user_id=create_user,
-        title="Test Category",
-        color="#FFFFFF",
-        order="0|hzzzzz:",
+        title=title,
+        color=color,
+        order=order,
     )
     return category
 
 
 @pytest.fixture
-def create_todo(db, create_user, create_category):
+def create_todo(
+    db,
+    create_user,
+    create_category,
+    date="2024-08-01",
+    due_time=None,
+    content="Test Todo",
+    order="0|hzzzzz:",
+    is_completed=False,
+):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date="2024-08-01",
-        end_date="2024-08-30",
+        date=date,
+        due_time=due_time,
         category_id=create_category,
-        content="Test Todo",
-        order="0|hzzzzz:",
-        is_completed=False,
+        content=content,
+        order=order,
+        is_completed=is_completed,
     )
     return todo
 
 
 @pytest.fixture
-def create_subtodo(db, create_user, create_todo):
+def create_subtodo(
+    db,
+    create_todo,
+    content="Test SubTodo",
+    date="2024-08-01",
+    due_time=None,
+    order="0|hzzzzz:",
+    is_completed=False,
+):
     subtodo = SubTodo.objects.create(
-        content="Test SubTodo",
-        date="2024-08-01",
+        content=content,
+        date=date,
+        due_time=due_time,
         todo=create_todo,
-        order="0|hzzzzz:",
-        is_completed=False,
+        order=order,
+        is_completed=is_completed,
     )
     return subtodo
 
@@ -113,6 +133,11 @@ def category():
         ("feedback", "일반 피드백"),
     ]
     return random.choice(CATEGORY_CHOICES)[0]
+
+
+@pytest.fixture
+def due_time():
+    return fake.time(pattern="%H:%M:%S")
 
 
 @pytest.fixture

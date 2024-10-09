@@ -12,7 +12,8 @@ class TodoAdmin(admin.ModelAdmin):
         "user_id",
         "category_id",
         "order",
-        "start_date",
+        "due_time",
+        "date",
         "is_completed",
     ]
     fieldsets = [
@@ -25,20 +26,28 @@ class TodoAdmin(admin.ModelAdmin):
                     "user_id",
                     "category_id",
                     "order",
+                    "due_time",
                     "is_completed",
                 ]
             },
         ),
         (
             "Date information",
-            {"fields": ["start_date", "end_date"], "classes": ["collapse"]},
+            {"fields": ["date"], "classes": ["collapse"]},
         ),
     ]
 
 
 class SubTodoAdmin(admin.ModelAdmin):
     readonly_fields = ["id"]
-    list_display = ["id", "content", "todo", "order", "is_completed"]
+    list_display = [
+        "id",
+        "content",
+        "todo_id",
+        "due_time",
+        "order",
+        "is_completed",
+    ]
     fieldsets = [
         (
             None,
@@ -46,7 +55,8 @@ class SubTodoAdmin(admin.ModelAdmin):
                 "fields": [
                     "id",
                     "content",
-                    "todo",
+                    "todo_id",
+                    "due_time",
                     "order",
                     "is_completed",
                 ]
