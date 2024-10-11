@@ -19,6 +19,7 @@ import resend
 import sentry_sdk
 from openai import OpenAI
 from sentry_sdk.integrations.django import DjangoIntegration
+import pymysql
 
 from accounts.aws import get_secret
 
@@ -27,6 +28,8 @@ CSRF_TRUSTED_ORIGINS = ["https://*.stepby.one"]
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SKIP_AUTHENTICATION = False
+
+pymysql.install_as_MySQLdb()
 
 # Load all secret variables stored in AWS secret manager
 SECRETS = eval(get_secret())
