@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "fcm_django",
     "django_crontab",
+    "django_lexorank",
 ]
 
 MIDDLEWARE = [

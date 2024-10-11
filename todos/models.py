@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
+from django_lexorank.models import RankedModel
 
 from accounts.models import User
 
@@ -24,10 +25,10 @@ class TodosManager(models.Manager):
         return self.get_queryset().filter(id=id).first()
 
     def get_with_user_id(self, user_id):
-        return self.get_queryset().filter(user_id=user_id).order_by("order")
+        return self.get_queryset().filter(user_id=user_id).order_by("rank")
 
     def get_subtodos(self, todo_id):
-        return self.get_queryset().filter(todo=todo_id).order_by("order")
+        return self.get_queryset().filter(todo=todo_id).order_by("rank")
 
     def get_inbox(self, user_id):
         return (
@@ -47,10 +48,10 @@ class TodosManager(models.Manager):
                     "subtodos",
                     queryset=SubTodo.objects.filter(
                         deleted_at__isnull=True, date__isnull=True
-                    ).order_by("order"),
+                    ).order_by("rank"),
                 )
             )
-            .order_by("order")
+            .order_by("rank")
         )
 
     def get_daily_with_date(self, user_id, start_date, end_date):
@@ -58,13 +59,13 @@ class TodosManager(models.Manager):
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
             .filter(Q(date__gte=start_date, date__lte=end_date))
             .exclude(date__isnull=True)
-            .order_by("order")
+            .order_by("rank")
             .prefetch_related(
                 Prefetch(
                     "subtodos",
                     queryset=SubTodo.objects.filter(
                         deleted_at__isnull=True, date__isnull=False
-                    ).order_by("order"),
+                    ).order_by("rank"),
                 )
             )
         )
@@ -79,7 +80,7 @@ class TodosManager(models.Manager):
                     "subtodos",
                     queryset=SubTodo.objects.filter(
                         deleted_at__isnull=True, date__isnull=False
-                    ).order_by("order"),
+                    ).order_by("rank"),
                 )
             )
         )
@@ -94,14 +95,13 @@ class TimeStamp(models.Model):
         abstract = True
 
 
-class Todo(TimeStamp):
+class Todo(TimeStamp, RankedModel):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
     category_id = models.ForeignKey("Category", on_delete=models.CASCADE)
     due_time = models.TimeField(null=True)
     date = models.DateField(null=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    order = models.CharField(max_length=255)
     is_completed = models.BooleanField(default=False)
 
     objects = TodosManager()
@@ -110,7 +110,7 @@ class Todo(TimeStamp):
         return self.content
 
 
-class SubTodo(TimeStamp):
+class SubTodo(TimeStamp, RankedModel):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
     todo_id = models.ForeignKey(
@@ -118,7 +118,6 @@ class SubTodo(TimeStamp):
     )
     due_time = models.TimeField(null=True, blank=True)
     date = models.DateField(null=True)
-    order = models.CharField(max_length=255, null=True)
     is_completed = models.BooleanField(default=False)
 
     objects = TodosManager()
@@ -127,12 +126,11 @@ class SubTodo(TimeStamp):
         return self.content
 
 
-class Category(TimeStamp):
+class Category(TimeStamp, RankedModel):
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     color = models.CharField(max_length=7)
     title = models.CharField(max_length=100, null=True)
-    order = models.CharField(max_length=255, null=True)
 
     objects = TodosManager()
 

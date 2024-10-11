@@ -109,3 +109,4 @@ protobuf==5.28.2
 swapper==1.4.0
 django_crontab==0.7.1
 Faker==27.0.0
+django-lexorank==0.1.3
