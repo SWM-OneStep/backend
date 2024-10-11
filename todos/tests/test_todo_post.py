@@ -33,7 +33,7 @@ def test_create_todo_success(
         "due_time": None,
         "content": content,
         "category_id": create_category.id,
-        "order": order(0),
+        "rank": order(0),
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 201
