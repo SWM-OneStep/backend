@@ -77,7 +77,7 @@ class SubTodoSerializer(serializers.ModelSerializer):
         if request.method == "PATCH":
             if not any(
                 data.get(field)
-                for field in ["content", "date", "is_completed", "rank"]
+                for field in ["content", "date", "is_completed", "patch_rank"]
             ):
                 raise serializers.ValidationError(
                     "At least one of content, date, \
@@ -85,6 +85,18 @@ class SubTodoSerializer(serializers.ModelSerializer):
                 )
             return data
         return data
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            if attr == "patch_rank":
+                SubTodo.objects.update_rank(
+                    instance, value.get("prev_id"), value.get("next_id")
+                )
+            else:
+                setattr(instance, attr, value)
+        instance.updated_at = timezone.now()
+        instance.save()
+        return instance
 
 
 class GetTodoSerializer(serializers.ModelSerializer):

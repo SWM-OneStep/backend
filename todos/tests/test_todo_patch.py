@@ -47,7 +47,7 @@ def test_update_todo_success(
 
 
 @pytest.mark.django_db
-def test_update_todo_success_top_order(
+def test_update_todo_success_bottom_order(
     create_user, create_category, authenticated_client, date, content
 ):
     todo = Todo.objects.create(
@@ -78,7 +78,7 @@ def test_update_todo_success_top_order(
 
 
 @pytest.mark.django_db
-def test_update_todo_success_bottom_order(
+def test_update_todo_success_top_order(
     create_user, create_category, authenticated_client, date, content
 ):
     todo = Todo.objects.create(
