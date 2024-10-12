@@ -40,13 +40,15 @@ def authenticated_client(create_user):
 
 @pytest.fixture
 def create_category(
-    db, create_user, title="Test Category", color="#FFFFFF", order="0|hzzzzz:"
+    db,
+    create_user,
+    title="Test Category",
+    color=1,
 ):
     category = Category.objects.create(
         user_id=create_user,
         title=title,
         color=color,
-        order=order,
     )
     return category
 
@@ -59,7 +61,6 @@ def create_todo(
     date="2024-08-01",
     due_time=None,
     content="Test Todo",
-    order="0|hzzzzz:",
     is_completed=False,
 ):
     todo = Todo.objects.create(
@@ -68,7 +69,6 @@ def create_todo(
         due_time=due_time,
         category_id=create_category,
         content=content,
-        order=order,
         is_completed=is_completed,
     )
     return todo
@@ -81,7 +81,6 @@ def create_subtodo(
     content="Test SubTodo",
     date="2024-08-01",
     due_time=None,
-    order="0|hzzzzz:",
     is_completed=False,
 ):
     subtodo = SubTodo.objects.create(
@@ -89,7 +88,6 @@ def create_subtodo(
         date=date,
         due_time=due_time,
         todo=create_todo,
-        order=order,
         is_completed=is_completed,
     )
     return subtodo
@@ -117,7 +115,7 @@ def order():
 
 @pytest.fixture
 def color():
-    return fake.color()
+    return fake.random_int(min=0, max=8)
 
 
 @pytest.fixture
@@ -141,14 +139,14 @@ def due_time():
 
 
 @pytest.fixture
-def llm():
+def recommend_result():
     mock_response = Mock()
     mock_response.choices = [
         Mock(
             message=Mock(
                 content=(
                     '{"id": 1, "content": "subtask", "start_date": "2024-09-01", '  # noqa
-                    '"end_date": "2024-09-24", "category_id": 1, "order": 1, '
+                    '"end_date": "2024-09-24", "category_id": 1 '
                     '"is_completed": false, "children": []}'
                 )
             )

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "fcm_django",
     "django_crontab",
+    "django_lexorank",
 ]
 
 MIDDLEWARE = [
@@ -247,14 +248,9 @@ except FileNotFoundError:
 
 sentry_sdk.init(
     dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,
+    traces_sample_rate=0.1,
     release=PROJECT_VERSION,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
+    profiles_sample_rate=0.1,
     integrations=[
         DjangoIntegration(
             transaction_style="url",
@@ -269,17 +265,5 @@ sentry_sdk.init(
     ],
 )
 
-sentry_sdk.metrics.incr(key="api_calls", value=1)
-
-sentry_sdk.metrics.distribution(
-    key="processing_time",
-    value=0.002,
-    unit="second",
-)
-sentry_sdk.metrics.gauge(
-    key="cpu_usage",
-    value=94,
-    unit="percent",
-)
 
 resend.api_key = SECRETS.get("RESEND")
