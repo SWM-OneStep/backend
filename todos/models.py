@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Count, Prefetch, Q
@@ -33,16 +34,25 @@ class TodosManager(models.Manager):
         return instance
 
     def get_queryset(self):
-        return super().get_queryset().filter(deleted_at__isnull=True)
+        super().get_queryset().filter(deleted_at__isnull=True)
 
     def get_with_id(self, id):
-        return self.get_queryset().filter(id=id).first()
+        instance = self.get_queryset().filter(id=id).first()
+        if instance is None:
+            raise ObjectDoesNotExist(f"No object found with id {id}")
+        return instance
 
     def get_with_user_id(self, user_id):
-        return self.get_queryset().filter(user_id=user_id).order_by("rank")
+        instance = self.get_queryset().filter(user_id=user_id).order_by("rank")
+        if instance is None:
+            raise ObjectDoesNotExist(f"No object found with user_id {user_id}")
+        return instance
 
     def get_subtodos(self, todo_id):
-        return self.get_queryset().filter(todo_id=todo_id).order_by("rank")
+        instance = self.get_queryset().filter(todo_id=todo_id).order_by("rank")
+        if instance is None:
+            raise ObjectDoesNotExist(f"No object found with todo_id {todo_id}")
+        return instance
 
     def get_inbox(self, user_id):
         return (
