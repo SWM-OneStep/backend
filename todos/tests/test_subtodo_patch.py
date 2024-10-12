@@ -17,13 +17,12 @@ from todos.models import SubTodo
 
 @pytest.mark.django_db
 def test_update_subtodo_success(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content, date
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     url = reverse("subtodos")  # URL name for the SubTodoView patch method
@@ -39,21 +38,19 @@ def test_update_subtodo_success(
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_order(
-    create_todo, authenticated_client, content, date, order
+def test_update_subtodo_order(
+    create_todo, authenticated_client, content, date
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     subtodo2 = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(1),
+        todo_id=create_todo,
         is_completed=False,
     )
     url = reverse("subtodos")
@@ -61,10 +58,9 @@ def test_update_subtodo_invalid_order(
         "subtodo_id": subtodo.id,
         "content": "Updated SubTodo",
         "date": "2024-08-03",
-        "order": {
+        "rank": {
             "prev_id": None,
             "next_id": subtodo2.id,
-            "updated_order": order(2),
         },
     }
     response = authenticated_client.patch(url, data, format="json")
@@ -73,13 +69,12 @@ def test_update_subtodo_invalid_order(
 
 @pytest.mark.django_db
 def test_update_subtodo_invalid_todo_id(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content, date
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     url = reverse("subtodos")
@@ -87,7 +82,7 @@ def test_update_subtodo_invalid_todo_id(
         "subtodo_id": subtodo.id,
         "content": "Updated SubTodo",
         "date": "2024-08-03",
-        "todo": 999,  # Invalid todo id
+        "todo_id": 999,  # Invalid todo id
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400

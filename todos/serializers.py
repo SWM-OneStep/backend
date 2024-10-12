@@ -53,11 +53,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class SubTodoSerializer(serializers.ModelSerializer):
     content = serializers.CharField(max_length=255)
-    todo = serializers.PrimaryKeyRelatedField(
+    todo_id = serializers.PrimaryKeyRelatedField(
         queryset=Todo.objects.all(), required=True
     )
     date = serializers.DateField(required=False, allow_null=True)
-    rank = serializers.CharField(max_length=255)
+    rank = serializers.CharField(max_length=255, required=False)
     is_completed = serializers.BooleanField(default=False)
     patch_rank = PatchRankSerializer(required=False)
 
@@ -115,7 +115,7 @@ class TodoSerializer(serializers.ModelSerializer):
     )
     date = serializers.DateField(allow_null=True, required=False)
     due_time = serializers.TimeField(allow_null=True, required=False)
-    rank = serializers.CharField(max_length=255)
+    rank = serializers.CharField(max_length=255, required=False)
     is_completed = serializers.BooleanField(default=False, required=False)
     patch_rank = PatchRankSerializer(required=False)
 
@@ -154,6 +154,7 @@ class TodoSerializer(serializers.ModelSerializer):
                     "category_id",
                     "date",
                     "is_completed",
+                    "rank",
                 ]
             ):
                 raise serializers.ValidationError(

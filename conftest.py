@@ -40,13 +40,15 @@ def authenticated_client(create_user):
 
 @pytest.fixture
 def create_category(
-    db, create_user, title="Test Category", color="#FFFFFF", order="0|hzzzzz:"
+    db,
+    create_user,
+    title="Test Category",
+    color="#FFFFFF",
 ):
     category = Category.objects.create(
         user_id=create_user,
         title=title,
         color=color,
-        order=order,
     )
     return category
 
@@ -59,7 +61,6 @@ def create_todo(
     date="2024-08-01",
     due_time=None,
     content="Test Todo",
-    order="0|hzzzzz:",
     is_completed=False,
 ):
     todo = Todo.objects.create(
@@ -68,7 +69,6 @@ def create_todo(
         due_time=due_time,
         category_id=create_category,
         content=content,
-        order=order,
         is_completed=is_completed,
     )
     return todo
@@ -81,7 +81,6 @@ def create_subtodo(
     content="Test SubTodo",
     date="2024-08-01",
     due_time=None,
-    order="0|hzzzzz:",
     is_completed=False,
 ):
     subtodo = SubTodo.objects.create(
@@ -89,7 +88,6 @@ def create_subtodo(
         date=date,
         due_time=due_time,
         todo=create_todo,
-        order=order,
         is_completed=is_completed,
     )
     return subtodo

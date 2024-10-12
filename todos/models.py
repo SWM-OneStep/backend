@@ -29,7 +29,7 @@ class TodosManager(models.Manager):
         return self.get_queryset().filter(user_id=user_id).order_by("rank")
 
     def get_subtodos(self, todo_id):
-        return self.get_queryset().filter(todo=todo_id).order_by("rank")
+        return self.get_queryset().filter(todo_id=todo_id).order_by("rank")
 
     def get_inbox(self, user_id):
         return (
