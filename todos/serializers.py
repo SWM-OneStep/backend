@@ -1,5 +1,4 @@
 # todos/serializers.py
-import re
 
 import django.utils.timezone as timezone
 from rest_framework import serializers
@@ -24,13 +23,6 @@ class CategorySerializer(serializers.ModelSerializer):
             User.objects.get(id=data.id)
         except User.DoesNotExist:
             raise serializers.ValidationError("User does not exist")
-        return data
-
-    def validate_color(self, data):
-        hex_color_pattern = r"^#([A-Fa-f0-9]{6})$"
-        match = re.match(hex_color_pattern, data)
-        if bool(match) is False:
-            raise serializers.ValidationError("Color code is invalid")
         return data
 
     def validate(self, data):

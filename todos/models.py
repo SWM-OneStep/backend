@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
@@ -144,7 +145,9 @@ class SubTodo(TimeStamp, RankedModel):
 class Category(TimeStamp, RankedModel):
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
-    color = models.CharField(max_length=7)
+    color = models.SmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(8)]
+    )
     title = models.CharField(max_length=100, null=True)
     rank = RankField(insert_to_bottom=True)
 
