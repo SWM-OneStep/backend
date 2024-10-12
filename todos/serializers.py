@@ -10,12 +10,8 @@ from .models import Category, SubTodo, Todo
 
 
 class PatchRankSerializer(serializers.Serializer):
-    prev_id = serializers.PrimaryKeyRelatedField(
-        queryset=Todo.objects.all(), required=False, allow_null=True
-    )
-    next_id = serializers.PrimaryKeyRelatedField(
-        queryset=Todo.objects.all(), required=False, allow_null=True
-    )
+    prev_id = serializers.IntegerField(required=False, allow_null=True)
+    next_id = serializers.IntegerField(required=False, allow_null=True)
 
 
 class CategorySerializer(serializers.ModelSerializer):

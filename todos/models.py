@@ -27,7 +27,8 @@ class TodosManager(models.Manager):
         elif next_id is None:  # Move to the bottom
             instance.place_on_bottom()
         else:  # Move to after prev_id
-            instance.place_after(prev_id)
+            prev_instance = self.get_queryset().get(id=prev_id)
+            instance.place_after(prev_instance)
         return instance
 
     def get_queryset(self):
