@@ -47,7 +47,7 @@ def test_update_todo_success(
 
 
 @pytest.mark.django_db
-def test_update_todo_success_order(
+def test_update_todo_success_top_order(
     create_user, create_category, authenticated_client, date, content
 ):
     todo = Todo.objects.create(
@@ -67,13 +67,84 @@ def test_update_todo_success_order(
     url = reverse("todos")
     data = {
         "todo_id": todo.id,
-        "rank": {
+        "patch_rank": {
             "prev_id": todo2.id,
             "next_id": None,
         },
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
+    assert response.data["rank"] > todo2.rank
+
+
+@pytest.mark.django_db
+def test_update_todo_success_bottom_order(
+    create_user, create_category, authenticated_client, date, content
+):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    todo2 = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    url = reverse("todos")
+    data = {
+        "todo_id": todo2.id,
+        "patch_rank": {
+            "prev_id": None,
+            "next_id": todo.id,
+        },
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["rank"] < todo.rank
+
+
+@pytest.mark.django_db
+def test_update_todo_success_between_order(
+    create_user, create_category, authenticated_client, date, content
+):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    todo2 = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    todo3 = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    url = reverse("todos")
+    data = {
+        "todo_id": todo.id,
+        "patch_rank": {
+            "prev_id": todo2.id,
+            "next_id": todo3.id,
+        },
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["rank"] > todo2.rank
+    assert response.data["rank"] < todo3.rank
 
 
 @pytest.mark.django_db

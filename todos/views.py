@@ -193,7 +193,6 @@ class TodoView(APIView):
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        # rank 의 경우 업데이트 처리 필요
         serializer = TodoSerializer(
             context={"request": request},
             instance=todo,

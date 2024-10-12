@@ -19,6 +19,17 @@ class TodosManager(models.Manager):
             instance.save()
         return instances
 
+    def update_rank(self, instance, prev_id, next_id):
+        if prev_id is None and next_id is None:
+            return instance
+        elif prev_id is None:  # Move to the top
+            instance.place_on_top()
+        elif next_id is None:  # Move to the bottom
+            instance.place_on_bottom()
+        else:  # Move to after prev_id
+            instance.place_after(prev_id)
+        return instance
+
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 

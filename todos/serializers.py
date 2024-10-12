@@ -154,7 +154,7 @@ class TodoSerializer(serializers.ModelSerializer):
                     "category_id",
                     "date",
                     "is_completed",
-                    "rank",
+                    "patch_rank",
                 ]
             ):
                 raise serializers.ValidationError(
@@ -167,7 +167,13 @@ class TodoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         # Update the fields as usual
         for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            if attr == "patch_rank":
+                # If the rank field is provided, update the rank field
+                Todo.objects.update_rank(
+                    instance, value.get("prev_id"), value.get("next_id")
+                )
+            else:
+                setattr(instance, attr, value)
 
         # Set the updated_at field to the current time
         instance.updated_at = timezone.now()
