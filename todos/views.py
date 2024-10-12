@@ -10,8 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from onestep_be.settings import client
-
-# from todos.firebase_messaging import send_push_notification_device
+from todos.firebase_messaging import send_push_notification_device
 from todos.models import Category, SubTodo, Todo, UserLastUsage
 from todos.serializers import (
     CategorySerializer,
@@ -70,12 +69,12 @@ class TodoView(APIView):
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
 
-                # send_push_notification_device(
-                #     request.auth.get("device"),
-                #     request.user,
-                #     TODO_FCM_MESSAGE_TITLE,
-                #     TODO_FCM_MESSAGE_BODY,
-                # )
+                send_push_notification_device(
+                    request.auth.get("device"),
+                    request.user,
+                    TODO_FCM_MESSAGE_TITLE,
+                    TODO_FCM_MESSAGE_BODY,
+                )
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED
                 )
@@ -202,12 +201,12 @@ class TodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     TODO_FCM_MESSAGE_TITLE,
-            #     TODO_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                TODO_FCM_MESSAGE_TITLE,
+                TODO_FCM_MESSAGE_BODY,
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             sentry_validation_error(
@@ -252,12 +251,12 @@ class TodoView(APIView):
             subtodos = SubTodo.objects.get_subtodos(todo.id)
             SubTodo.objects.delete_many(subtodos)
             Todo.objects.delete_instance(todo)
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     TODO_FCM_MESSAGE_TITLE,
-            #     TODO_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                TODO_FCM_MESSAGE_TITLE,
+                TODO_FCM_MESSAGE_BODY,
+            )
             return Response(
                 {"todo_id": todo.id, "message": "Todo deleted successfully"},
                 status=status.HTTP_200_OK,
@@ -300,12 +299,12 @@ class SubTodoView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
 
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     SUBTODO_FCM_MESSAGE_TITLE,
-            #     SUBTODO_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                SUBTODO_FCM_MESSAGE_TITLE,
+                SUBTODO_FCM_MESSAGE_BODY,
+            )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
@@ -408,12 +407,12 @@ class SubTodoView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
 
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     SUBTODO_FCM_MESSAGE_TITLE,
-            #     SUBTODO_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                SUBTODO_FCM_MESSAGE_TITLE,
+                SUBTODO_FCM_MESSAGE_BODY,
+            )
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
@@ -459,12 +458,12 @@ class SubTodoView(APIView):
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
 
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     SUBTODO_FCM_MESSAGE_TITLE,
-            #     SUBTODO_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                SUBTODO_FCM_MESSAGE_TITLE,
+                SUBTODO_FCM_MESSAGE_BODY,
+            )
             return Response(
                 {
                     "subtodo_id": sub_todo.id,
@@ -512,12 +511,12 @@ class CategoryView(APIView):
 
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                # send_push_notification_device(
-                #     request.auth.get("device"),
-                #     request.user,
-                #     CATEGORY_FCM_MESSAGE_TITLE,
-                #     CATEGORY_FCM_MESSAGE_BODY,
-                # )
+                send_push_notification_device(
+                    request.auth.get("device"),
+                    request.user,
+                    CATEGORY_FCM_MESSAGE_TITLE,
+                    CATEGORY_FCM_MESSAGE_BODY,
+                )
 
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED
@@ -594,12 +593,12 @@ class CategoryView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
 
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     CATEGORY_FCM_MESSAGE_TITLE,
-            #     CATEGORY_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                CATEGORY_FCM_MESSAGE_TITLE,
+                CATEGORY_FCM_MESSAGE_BODY,
+            )
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
@@ -690,12 +689,12 @@ class CategoryView(APIView):
                 )
             category = Category.objects.get_with_id(id=category_id)
             Category.objects.delete_instance(category)
-            # send_push_notification_device(
-            #     request.auth.get("device"),
-            #     request.user,
-            #     CATEGORY_FCM_MESSAGE_TITLE,
-            #     CATEGORY_FCM_MESSAGE_BODY,
-            # )
+            send_push_notification_device(
+                request.auth.get("device"),
+                request.user,
+                CATEGORY_FCM_MESSAGE_TITLE,
+                CATEGORY_FCM_MESSAGE_BODY,
+            )
             return Response(
                 {
                     "category_id": category.id,
