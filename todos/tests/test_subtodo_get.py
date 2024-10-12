@@ -14,20 +14,18 @@ from todos.models import SubTodo
 
 
 @pytest.mark.django_db
-def test_get_subtodos(create_todo, authenticated_client, content, date, order):
+def test_get_subtodos(create_todo, authenticated_client, content, date):
     url = reverse("subtodos")
     SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(1),
+        todo_id=create_todo,
         is_completed=False,
     )
     response = authenticated_client.get(
@@ -39,63 +37,57 @@ def test_get_subtodos(create_todo, authenticated_client, content, date, order):
 
 @pytest.mark.django_db
 def test_get_subtodos_ordering(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content, date
 ):
     url = reverse("subtodos")
     SubTodo.objects.create(
-        content=content,
+        content="1",
         date=date,
-        todo=create_todo,
-        order=order(2),
+        todo_id=create_todo,
         is_completed=False,
     )
     SubTodo.objects.create(
-        content=content,
+        content="2",
         date=date,
-        todo=create_todo,
-        order=order(1),
+        todo_id=create_todo,
         is_completed=False,
     )
     SubTodo.objects.create(
-        content=content,
+        content="3",
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     response = authenticated_client.get(
         url, {"todo_id": create_todo.id}, format="json"
     )
     assert response.status_code == 200
-    assert response.data[0]["order"] == order(0)
-    assert response.data[1]["order"] == order(1)
-    assert response.data[2]["order"] == order(2)
+    assert response.data[0]["content"] == "1"
+    assert response.data[1]["content"] == "2"
+    assert response.data[2]["content"] == "3"
 
 
 @pytest.mark.django_db
 def test_get_subtodos_between_dates(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content
 ):
     url = reverse("subtodos")
     SubTodo.objects.create(
         content=content,
         date="2024-08-02",
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     SubTodo.objects.create(
         content=content,
         date="2024-08-04",
-        todo=create_todo,
-        order=order(1),
+        todo_id=create_todo,
         is_completed=False,
     )
     SubTodo.objects.create(
         content=content,
         date="2024-08-06",
-        todo=create_todo,
-        order=order(2),
+        todo_id=create_todo,
         is_completed=False,
     )
     response = authenticated_client.get(

@@ -1,8 +1,6 @@
 import pytest
 from django.urls import reverse
 
-from todos.models import SubTodo
-
 """
 ======================================
 # SubTodo Post checklist #
@@ -17,15 +15,14 @@ from todos.models import SubTodo
 
 @pytest.mark.django_db
 def test_create_subtodo_success(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content, date
 ):
     url = reverse("subtodos")
     data = [
         {
             "content": content,
             "date": date,
-            "todo": create_todo.id,
-            "order": order(0),
+            "todo_id": create_todo.id,
             "is_completed": False,
         }
     ]
@@ -36,41 +33,13 @@ def test_create_subtodo_success(
 
 
 @pytest.mark.django_db
-def test_create_subtodo_invalid_order(
-    create_todo, authenticated_client, content, date, order
-):
-    SubTodo.objects.create(
-        content=content,
-        date=date,
-        todo=create_todo,
-        order=order(0),
-        is_completed=False,
-    )
+def test_create_subtodo_invalid_todo_id(authenticated_client, content, date):
     url = reverse("subtodos")
     data = [
         {
             "content": content,
             "date": date,
-            "todo": create_todo.id,
-            "order": order(0),
-            "is_completed": False,
-        }
-    ]
-    response = authenticated_client.post(url, data, format="json")
-    assert response.status_code == 400
-
-
-@pytest.mark.django_db
-def test_create_subtodo_invalid_todo_id(
-    authenticated_client, content, date, order
-):
-    url = reverse("subtodos")
-    data = [
-        {
-            "content": content,
-            "date": date,
-            "todo": 999,  # Invalid todo id
-            "order": order(0),
+            "todo_id": 999,  # Invalid todo id
             "is_completed": False,
         }
     ]

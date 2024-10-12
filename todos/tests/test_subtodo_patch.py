@@ -17,13 +17,12 @@ from todos.models import SubTodo
 
 @pytest.mark.django_db
 def test_update_subtodo_success(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content, date
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     url = reverse("subtodos")  # URL name for the SubTodoView patch method
@@ -39,47 +38,51 @@ def test_update_subtodo_success(
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_order(
-    create_todo, authenticated_client, content, date, order
+def test_update_subtodo_success_top_rank(
+    create_todo, authenticated_client, content, date
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
     )
     subtodo2 = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(1),
+        todo_id=create_todo,
         is_completed=False,
     )
     url = reverse("subtodos")
     data = {
-        "subtodo_id": subtodo.id,
+        "subtodo_id": subtodo2.id,
         "content": "Updated SubTodo",
         "date": "2024-08-03",
-        "order": {
+        "patch_rank": {
             "prev_id": None,
-            "next_id": subtodo2.id,
-            "updated_order": order(2),
+            "next_id": subtodo.id,
         },
     }
     response = authenticated_client.patch(url, data, format="json")
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.data["content"] == "Updated SubTodo"
+    assert response.data["rank"] < subtodo.rank
 
 
 @pytest.mark.django_db
-def test_update_subtodo_invalid_todo_id(
-    create_todo, authenticated_client, content, date, order
+def test_update_subtodo_success_bottom_rank(
+    create_todo, authenticated_client, content, date
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
+        is_completed=False,
+    )
+    subtodo2 = SubTodo.objects.create(
+        content=content,
+        date=date,
+        todo_id=create_todo,
         is_completed=False,
     )
     url = reverse("subtodos")
@@ -87,7 +90,72 @@ def test_update_subtodo_invalid_todo_id(
         "subtodo_id": subtodo.id,
         "content": "Updated SubTodo",
         "date": "2024-08-03",
-        "todo": 999,  # Invalid todo id
+        "patch_rank": {
+            "prev_id": subtodo2.id,
+            "next_id": None,
+        },
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["content"] == "Updated SubTodo"
+    assert response.data["rank"] > subtodo2.rank
+
+
+@pytest.mark.django_db
+def test_update_subtodo_success_between_rank(
+    create_todo, authenticated_client, content, date
+):
+    subtodo = SubTodo.objects.create(
+        content=content,
+        date=date,
+        todo_id=create_todo,
+        is_completed=False,
+    )
+    subtodo2 = SubTodo.objects.create(
+        content=content,
+        date=date,
+        todo_id=create_todo,
+        is_completed=False,
+    )
+    subtodo3 = SubTodo.objects.create(
+        content=content,
+        date=date,
+        todo_id=create_todo,
+        is_completed=False,
+    )
+    url = reverse("subtodos")
+    data = {
+        "subtodo_id": subtodo.id,
+        "content": "Updated SubTodo",
+        "date": "2024-08-03",
+        "patch_rank": {
+            "prev_id": subtodo2.id,
+            "next_id": subtodo3.id,
+        },
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["content"] == "Updated SubTodo"
+    assert response.data["rank"] < subtodo3.rank
+    assert response.data["rank"] > subtodo2.rank
+
+
+@pytest.mark.django_db
+def test_update_subtodo_invalid_todo_id(
+    create_todo, authenticated_client, content, date
+):
+    subtodo = SubTodo.objects.create(
+        content=content,
+        date=date,
+        todo_id=create_todo,
+        is_completed=False,
+    )
+    url = reverse("subtodos")
+    data = {
+        "subtodo_id": subtodo.id,
+        "content": "Updated SubTodo",
+        "date": "2024-08-03",
+        "todo_id": 999,  # Invalid todo id
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400

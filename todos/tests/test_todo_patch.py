@@ -19,140 +19,178 @@ from todos.models import Todo
 
 @pytest.mark.django_db
 def test_update_todo_success(
-    authenticated_client, create_category, create_user, date, content, order
+    authenticated_client,
+    create_category,
+    create_user,
+    date,
+    content,
+    due_time,
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
     )
     url = reverse("todos")
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": date + timedelta(days=1),
-        "end_date": date + timedelta(days=3),
+        "date": date + timedelta(days=1),
+        "due_time": due_time,
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
     assert response.data["content"] == "Updated Todo"
-    assert response.data["end_date"] == str(data["end_date"])
+    assert response.data["date"] == str(data["date"])
 
 
 @pytest.mark.django_db
-def test_update_todo_success_order(
-    create_user, create_category, authenticated_client, date, content, order
+def test_update_todo_success_bottom_order(
+    create_user, create_category, authenticated_client, date, content
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(1),
     )
     url = reverse("todos")
     data = {
         "todo_id": todo.id,
-        "order": {
+        "patch_rank": {
             "prev_id": todo2.id,
             "next_id": None,
-            "updated_order": order(2),
         },
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
-    assert response.data["order"] == order(2)
+    assert response.data["rank"] > todo2.rank
 
 
 @pytest.mark.django_db
-def test_update_todo_invalid_order(
-    authenticated_client, create_category, create_user, date, content, order
+def test_update_todo_success_top_order(
+    create_user, create_category, authenticated_client, date, content
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(1),
     )
     url = reverse("todos")
     data = {
-        "todo_id": todo.id,
-        "content": "Updated Todo",
-        "start_date": date + timedelta(days=1),
-        "end_date": date + timedelta(days=3),
-        "order": {
+        "todo_id": todo2.id,
+        "patch_rank": {
             "prev_id": None,
-            "next_id": todo2.id,
-            "updated_order": order(2),
+            "next_id": todo.id,
         },
     }
     response = authenticated_client.patch(url, data, format="json")
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.data["rank"] < todo.rank
 
 
 @pytest.mark.django_db
-def test_update_todo_invalid_start_date(
-    authenticated_client, create_category, create_user, date, content, order
+def test_update_todo_success_None_order(
+    create_user, create_category, authenticated_client, date, content
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
+    )
+    before_rank = todo.rank
+    url = reverse("todos")
+    data = {
+        "todo_id": todo.id,
+        "patch_rank": {
+            "prev_id": None,
+            "next_id": None,
+        },
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["rank"] == before_rank
+
+
+@pytest.mark.django_db
+def test_update_todo_success_between_order(
+    create_user, create_category, authenticated_client, date, content
+):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    todo2 = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    todo3 = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
     )
     url = reverse("todos")
     data = {
         "todo_id": todo.id,
-        "content": "Updated Todo",
-        "start_date": date + timedelta(days=2),
-        "end_date": date + timedelta(days=1),
+        "patch_rank": {
+            "prev_id": todo2.id,
+            "next_id": todo3.id,
+        },
     }
     response = authenticated_client.patch(url, data, format="json")
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.data["rank"] > todo2.rank
+    assert response.data["rank"] < todo3.rank
 
 
 @pytest.mark.django_db
 def test_update_todo_invalid_category_id(
-    authenticated_client, create_category, create_user, date, content, order
+    authenticated_client,
+    create_category,
+    create_user,
+    date,
+    content,
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
     )
     url = reverse("todos")
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": date + timedelta(days=1),
-        "end_date": date + timedelta(days=3),
         "category_id": 999,
     }
     response = authenticated_client.patch(url, data, format="json")
@@ -161,22 +199,23 @@ def test_update_todo_invalid_category_id(
 
 @pytest.mark.django_db
 def test_update_todo_invalid_user_id(
-    authenticated_client, create_category, create_user, date, content, order
+    authenticated_client,
+    create_category,
+    create_user,
+    date,
+    content,
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
     )
     url = reverse("todos")
     data = {
         "todo_id": todo.id,
         "content": "Updated Todo",
-        "start_date": date + timedelta(days=1),
-        "end_date": date + timedelta(days=3),
         "user_id": 999,
     }
     response = authenticated_client.patch(url, data, format="json")
