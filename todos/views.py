@@ -20,8 +20,11 @@ from todos.serializers import (
 )
 from todos.swagger_serializers import (
     SwaggerCategoryPatchSerializer,
+    SwaggerCategorySerializer,
     SwaggerSubTodoPatchSerializer,
+    SwaggerSubTodoSerializer,
     SwaggerTodoPatchSerializer,
+    SwaggerTodoSerializer,
 )
 from todos.utils import sentry_validation_error, set_sentry_user
 
@@ -41,9 +44,9 @@ class TodoView(APIView):
 
     @swagger_auto_schema(
         tags=["Todo"],
-        request_body=TodoSerializer,
+        request_body=SwaggerTodoSerializer,
         operation_summary="Create a todo",
-        responses={201: TodoSerializer},
+        responses={201: SwaggerTodoSerializer},
     )
     def post(self, request):
         """
@@ -96,13 +99,6 @@ class TodoView(APIView):
     @swagger_auto_schema(
         tags=["Todo"],
         manual_parameters=[
-            openapi.Parameter(
-                "user_id",
-                openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                description="user_id",
-                required=True,
-            ),
             openapi.Parameter(
                 "start_date",
                 openapi.IN_QUERY,
@@ -164,7 +160,7 @@ class TodoView(APIView):
         tags=["Todo"],
         request_body=SwaggerTodoPatchSerializer,
         operation_summary="Update a todo",
-        responses={200: TodoSerializer},
+        responses={200: SwaggerTodoSerializer},
     )
     def patch(self, request):
         """
@@ -228,7 +224,7 @@ class TodoView(APIView):
             },
         ),
         operation_summary="Delete a todo",
-        responses={200: TodoSerializer},
+        responses={200: SwaggerTodoSerializer},
     )
     def delete(self, request):
         """
@@ -278,9 +274,9 @@ class SubTodoView(APIView):
 
     @swagger_auto_schema(
         tags=["SubTodo"],
-        request_body=SubTodoSerializer(many=True),
+        request_body=SwaggerSubTodoSerializer(many=True),
         operation_summary="Create a subtodo",
-        responses={201: SubTodoSerializer},
+        responses={201: SwaggerSubTodoSerializer},
     )
     def post(self, request):
         """
@@ -328,7 +324,7 @@ class SubTodoView(APIView):
             )
         ],
         operation_summary="Get a subtodo",
-        responses={200: SubTodoSerializer},
+        responses={200: SwaggerSubTodoSerializer},
     )
     def get(self, request):
         """
@@ -364,7 +360,7 @@ class SubTodoView(APIView):
         tags=["SubTodo"],
         request_body=SwaggerSubTodoPatchSerializer,
         operation_summary="Update a subtodo",
-        responses={200: SubTodoSerializer},
+        responses={200: SwaggerSubTodoSerializer},
     )
     def patch(self, request):
         """
@@ -396,7 +392,6 @@ class SubTodoView(APIView):
                 {"error": "SubTodo not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        # rank 관련 로직 필요
         serializer = SubTodoSerializer(
             context={"request": request},
             instance=sub_todo,
@@ -435,7 +430,7 @@ class SubTodoView(APIView):
             },
         ),
         operation_summary="Delete a subtodo",
-        responses={200: SubTodoSerializer},
+        responses={200: SwaggerSubTodoSerializer},
     )
     def delete(self, request):
         """
@@ -489,9 +484,9 @@ class CategoryView(APIView):
 
     @swagger_auto_schema(
         tags=["Category"],
-        request_body=CategorySerializer,
+        request_body=SwaggerCategorySerializer,
         operation_summary="Create a category",
-        responses={201: CategorySerializer},
+        responses={201: SwaggerCategorySerializer},
     )
     def post(self, request):
         """
@@ -540,7 +535,7 @@ class CategoryView(APIView):
         tags=["Category"],
         request_body=SwaggerCategoryPatchSerializer,
         operation_summary="Update a category",
-        responses={200: CategorySerializer},
+        responses={200: SwaggerCategorySerializer},
     )
     def patch(self, request):
         """
@@ -612,17 +607,8 @@ class CategoryView(APIView):
 
     @swagger_auto_schema(
         tags=["Category"],
-        manual_parameters=[
-            openapi.Parameter(
-                "user_id",
-                openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                description="user_id",
-                required=True,
-            )
-        ],
         operation_summary="Get a category",
-        responses={200: CategorySerializer},
+        responses={200: SwaggerCategorySerializer},
     )
     def get(self, request):
         """
@@ -667,7 +653,7 @@ class CategoryView(APIView):
             },
         ),
         operation_summary="Delete a category",
-        responses={200: CategorySerializer},
+        responses={200: SwaggerCategorySerializer},
     )
     def delete(self, request):
         """

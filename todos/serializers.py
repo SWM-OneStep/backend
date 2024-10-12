@@ -111,7 +111,7 @@ class TodoSerializer(serializers.ModelSerializer):
         queryset=Category.objects.all(), required=True
     )
     user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), required=True
+        queryset=User.objects.all(), required=False
     )
     date = serializers.DateField(allow_null=True, required=False)
     due_time = serializers.TimeField(allow_null=True, required=False)

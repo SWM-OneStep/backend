@@ -34,7 +34,7 @@ class TodosManager(models.Manager):
         return instance
 
     def get_queryset(self):
-        super().get_queryset().filter(deleted_at__isnull=True)
+        return super().get_queryset().filter(deleted_at__isnull=True)
 
     def get_with_id(self, id):
         instance = self.get_queryset().filter(id=id).first()
