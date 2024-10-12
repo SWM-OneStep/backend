@@ -109,6 +109,31 @@ def test_update_todo_success_top_order(
 
 
 @pytest.mark.django_db
+def test_update_todo_success_None_order(
+    create_user, create_category, authenticated_client, date, content
+):
+    todo = Todo.objects.create(
+        user_id=create_user,
+        date=date,
+        due_time=None,
+        content=content,
+        category_id=create_category,
+    )
+    before_rank = todo.rank
+    url = reverse("todos")
+    data = {
+        "todo_id": todo.id,
+        "patch_rank": {
+            "prev_id": None,
+            "next_id": None,
+        },
+    }
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == 200
+    assert response.data["rank"] == before_rank
+
+
+@pytest.mark.django_db
 def test_update_todo_success_between_order(
     create_user, create_category, authenticated_client, date, content
 ):
