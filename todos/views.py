@@ -152,7 +152,7 @@ class TodoView(APIView):
             else:
                 todos = Todo.objects.get_with_user_id(
                     user_id=user_id
-                ).order_by("order")
+                ).order_by("rank")
         except Todo.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
             return Response(

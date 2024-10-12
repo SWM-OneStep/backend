@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import pytest
 from django.urls import reverse
 
@@ -16,15 +14,14 @@ from todos.models import Todo
 
 @pytest.mark.django_db
 def test_delete_todo_success(
-    authenticated_client, create_category, create_user, date, content, order
+    authenticated_client, create_category, create_user, date, content
 ):
     todo = Todo.objects.create(
         user_id=create_user,
-        start_date=date + timedelta(days=1),
-        end_date=date + timedelta(days=2),
+        date=date,
+        due_time=None,
         content=content,
         category_id=create_category,
-        order=order(0),
     )
     url = reverse("todos")
     data = {"todo_id": todo.id}
@@ -40,7 +37,7 @@ def test_delete_todo_success(
 
 
 @pytest.mark.django_db
-def test_delete_todo_invalid_id(authenticated_client, order):
+def test_delete_todo_invalid_id(authenticated_client):
     url = reverse("todos")
     data = {"todo_id": 999}
     response = authenticated_client.delete(url, data, format="json")
