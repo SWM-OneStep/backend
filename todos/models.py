@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
+from django_lexorank.fields import RankField
 from django_lexorank.models import RankedModel
 
 from accounts.models import User
@@ -103,6 +104,7 @@ class Todo(TimeStamp, RankedModel):
     date = models.DateField(null=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
+    rank = RankField(insert_to_bottom=True)
 
     objects = TodosManager()
 
@@ -119,6 +121,7 @@ class SubTodo(TimeStamp, RankedModel):
     due_time = models.TimeField(null=True, blank=True)
     date = models.DateField(null=True)
     is_completed = models.BooleanField(default=False)
+    rank = RankField(insert_to_bottom=True)
 
     objects = TodosManager()
 
@@ -131,6 +134,7 @@ class Category(TimeStamp, RankedModel):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     color = models.CharField(max_length=7)
     title = models.CharField(max_length=100, null=True)
+    rank = RankField(insert_to_bottom=True)
 
     objects = TodosManager()
 
