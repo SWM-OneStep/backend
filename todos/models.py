@@ -146,7 +146,7 @@ class Category(TimeStamp, RankedModel):
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     color = models.SmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(8)]
+        validators=[MinValueValidator(0), MaxValueValidator(8)]
     )
     title = models.CharField(max_length=100, null=True)
     rank = RankField(insert_to_bottom=True)

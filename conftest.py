@@ -115,7 +115,7 @@ def order():
 
 @pytest.fixture
 def color():
-    return fake.color()
+    return fake.random_int(min=0, max=8)
 
 
 @pytest.fixture
