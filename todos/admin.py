@@ -11,7 +11,6 @@ class TodoAdmin(admin.ModelAdmin):
         "content",
         "user_id",
         "category_id",
-        "order",
         "due_time",
         "date",
         "is_completed",
@@ -25,7 +24,6 @@ class TodoAdmin(admin.ModelAdmin):
                     "content",
                     "user_id",
                     "category_id",
-                    "order",
                     "due_time",
                     "is_completed",
                 ]
@@ -45,7 +43,6 @@ class SubTodoAdmin(admin.ModelAdmin):
         "content",
         "todo_id",
         "due_time",
-        "order",
         "is_completed",
     ]
     fieldsets = [
@@ -57,7 +54,6 @@ class SubTodoAdmin(admin.ModelAdmin):
                     "content",
                     "todo_id",
                     "due_time",
-                    "order",
                     "is_completed",
                 ]
             },
@@ -71,11 +67,11 @@ class SubTodoAdmin(admin.ModelAdmin):
 
 class CategoryAdmin(admin.ModelAdmin):
     readonly_fields = ["id"]
-    list_display = ["id", "title", "user_id", "color", "order"]
+    list_display = ["id", "title", "user_id", "color"]
     fieldsets = [
         (
             None,
-            {"fields": ["id", "title", "user_id", "color", "order"]},
+            {"fields": ["id", "title", "user_id", "color"]},
         ),
     ]
 

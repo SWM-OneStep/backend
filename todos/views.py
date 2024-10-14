@@ -20,8 +20,11 @@ from todos.serializers import (
 )
 from todos.swagger_serializers import (
     SwaggerCategoryPatchSerializer,
+    SwaggerCategorySerializer,
     SwaggerSubTodoPatchSerializer,
+    SwaggerSubTodoSerializer,
     SwaggerTodoPatchSerializer,
+    SwaggerTodoSerializer,
 )
 from todos.utils import sentry_validation_error, set_sentry_user
 
@@ -41,9 +44,9 @@ class TodoView(APIView):
 
     @swagger_auto_schema(
         tags=["Todo"],
-        request_body=TodoSerializer,
+        request_body=SwaggerTodoSerializer,
         operation_summary="Create a todo",
-        responses={201: TodoSerializer},
+        responses={201: SwaggerTodoSerializer},
     )
     def post(self, request):
         """
@@ -97,13 +100,6 @@ class TodoView(APIView):
         tags=["Todo"],
         manual_parameters=[
             openapi.Parameter(
-                "user_id",
-                openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                description="user_id",
-                required=True,
-            ),
-            openapi.Parameter(
                 "start_date",
                 openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
@@ -148,13 +144,10 @@ class TodoView(APIView):
                 todos = Todo.objects.get_daily_with_date(
                     user_id=user_id, start_date=start_date, end_date=end_date
                 )
-                sentry_sdk.capture_message("Get inbox todos", level="info")
             else:
                 todos = Todo.objects.get_with_user_id(
                     user_id=user_id
-                ).order_by("order")
-
-                sentry_sdk.capture_message("Get daily todos", level="info")
+                ).order_by("rank")
         except Todo.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
             return Response(
@@ -167,18 +160,17 @@ class TodoView(APIView):
         tags=["Todo"],
         request_body=SwaggerTodoPatchSerializer,
         operation_summary="Update a todo",
-        responses={200: TodoSerializer},
+        responses={200: SwaggerTodoSerializer},
     )
     def patch(self, request):
         """
         - 이 함수는 todo를 수정하는 함수입니다.
         - 입력 : todo_id, 수정 내용
         - 수정 내용은 content, category, start_date, end_date 중 하나 이상이어야 합니다.
-        - order 의 경우 아래와 같이 제시된다.
-            "order" : {
+        - rank 의 경우 아래와 같이 제시된다.
+            "rank" : {
                 "prev_id" : 1,
                 "next_id" : 3,
-                "updated_order" : "0|asdf:"
             }
         """  # noqa: E501
         set_sentry_user(request.user)
@@ -196,10 +188,6 @@ class TodoView(APIView):
             return Response(
                 {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        if "order" in request.data:
-            nested_order = request.data.get("order")
-            request.data["order"] = nested_order.get("updated_order")
-            request.data["patch_order"] = nested_order
         serializer = TodoSerializer(
             context={"request": request},
             instance=todo,
@@ -236,7 +224,7 @@ class TodoView(APIView):
             },
         ),
         operation_summary="Delete a todo",
-        responses={200: TodoSerializer},
+        responses={200: SwaggerTodoSerializer},
     )
     def delete(self, request):
         """
@@ -286,14 +274,14 @@ class SubTodoView(APIView):
 
     @swagger_auto_schema(
         tags=["SubTodo"],
-        request_body=SubTodoSerializer(many=True),
+        request_body=SwaggerSubTodoSerializer(many=True),
         operation_summary="Create a subtodo",
-        responses={201: SubTodoSerializer},
+        responses={201: SwaggerSubTodoSerializer},
     )
     def post(self, request):
         """
         - 이 함수는 sub todo를 생성하는 함수입니다.
-        - 입력 : todo, date, content, order
+        - 입력 : todo, date, content
         - subtodo 는 리스트에 여러 객체가 들어간 형태를 가집니다.
         - content 는 암호화 되어야 합니다(// 미정)
         - date 는 parent의 start_date와 end_date의 사이여야 합니다.
@@ -306,8 +294,6 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-
-            sentry_sdk.capture_message("SubTodo created", level="info")
 
             send_push_notification_device(
                 request.auth.get("device"),
@@ -338,7 +324,7 @@ class SubTodoView(APIView):
             )
         ],
         operation_summary="Get a subtodo",
-        responses={200: SubTodoSerializer},
+        responses={200: SwaggerSubTodoSerializer},
     )
     def get(self, request):
         """
@@ -374,18 +360,17 @@ class SubTodoView(APIView):
         tags=["SubTodo"],
         request_body=SwaggerSubTodoPatchSerializer,
         operation_summary="Update a subtodo",
-        responses={200: SubTodoSerializer},
+        responses={200: SwaggerSubTodoSerializer},
     )
     def patch(self, request):
         """
         - 이 함수는 sub todo를 수정하는 함수입니다.
         - 입력 : subtodo_id, 수정 내용
-        - 수정 내용은 content, date, parent_id 중 하나 이상이어야 합니다.
-        - order 의 경우 아래와 같이 수신됨
-            "order" : {
+        - 수정 내용은 content, date, parent_id, rank 중 하나 이상이어야 합니다.
+        - rank 의 경우 아래와 같이 수신됨
+            "rank" : {
                 "prev_id" : 1,
                 "next_id" : 3,
-                "updated_order" : "0|asdf:"
             }
         """
         set_sentry_user(request.user)
@@ -407,10 +392,6 @@ class SubTodoView(APIView):
                 {"error": "SubTodo not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        if "order" in request.data:
-            nested_order = request.data.get("order")
-            request.data["order"] = nested_order.get("updated_order")
-            request.data["patch_order"] = nested_order
         serializer = SubTodoSerializer(
             context={"request": request},
             instance=sub_todo,
@@ -420,8 +401,6 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-
-            sentry_sdk.capture_message("SubTodo updated", level="info")
 
             send_push_notification_device(
                 request.auth.get("device"),
@@ -451,7 +430,7 @@ class SubTodoView(APIView):
             },
         ),
         operation_summary="Delete a subtodo",
-        responses={200: SubTodoSerializer},
+        responses={200: SwaggerSubTodoSerializer},
     )
     def delete(self, request):
         """
@@ -473,7 +452,6 @@ class SubTodoView(APIView):
         try:
             sub_todo = SubTodo.objects.get_with_id(id=subtodo_id)
             SubTodo.objects.delete_instance(sub_todo)
-            sentry_sdk.capture_message("SubTodo deleted", level="info")
 
             send_push_notification_device(
                 request.auth.get("device"),
@@ -506,9 +484,9 @@ class CategoryView(APIView):
 
     @swagger_auto_schema(
         tags=["Category"],
-        request_body=CategorySerializer,
+        request_body=SwaggerCategorySerializer,
         operation_summary="Create a category",
-        responses={201: CategorySerializer},
+        responses={201: SwaggerCategorySerializer},
     )
     def post(self, request):
         """
@@ -557,18 +535,17 @@ class CategoryView(APIView):
         tags=["Category"],
         request_body=SwaggerCategoryPatchSerializer,
         operation_summary="Update a category",
-        responses={200: CategorySerializer},
+        responses={200: SwaggerCategorySerializer},
     )
     def patch(self, request):
         """
         - 이 함수는 category를 수정하는 함수입니다.
         - 입력 : category_id, 수정 내용
         - 수정 내용은 title, color 중 하나 이상이어야 합니다.
-        - order 의 경우 아래와 같이 수신됨
-            "order" : {
+        - rank 의 경우 아래와 같이 수신됨
+            "rank" : {
                 "prev_id" : 1,
                 "next_id" : 3,
-                "updated_order" : "0|asdf:"
             }
         """
         set_sentry_user(request.user)
@@ -602,12 +579,6 @@ class CategoryView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
-
-        if "order" in request.data:
-            nested_order = request.data.get("order")
-            request.data["order"] = nested_order.get("updated_order")
-            request.data["patch_order"] = nested_order
-
         serializer = CategorySerializer(
             context={"request": request},
             instance=category,
@@ -617,7 +588,6 @@ class CategoryView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
 
-            sentry_sdk.capture_message("Category updated", level="info")
             send_push_notification_device(
                 request.auth.get("device"),
                 request.user,
@@ -637,17 +607,8 @@ class CategoryView(APIView):
 
     @swagger_auto_schema(
         tags=["Category"],
-        manual_parameters=[
-            openapi.Parameter(
-                "user_id",
-                openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                description="user_id",
-                required=True,
-            )
-        ],
         operation_summary="Get a category",
-        responses={200: CategorySerializer},
+        responses={200: SwaggerCategorySerializer},
     )
     def get(self, request):
         """
@@ -692,7 +653,7 @@ class CategoryView(APIView):
             },
         ),
         operation_summary="Delete a category",
-        responses={200: CategorySerializer},
+        responses={200: SwaggerCategorySerializer},
     )
     def delete(self, request):
         """

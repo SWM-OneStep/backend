@@ -18,7 +18,7 @@ coreschema==0.0.4
 cryptography==42.0.8
 distro==1.9.0
 dj-rest-auth==6.0.0
-Django==5.0.6
+Django==4.2.16
 django-allauth==0.63.3
 django-cors-headers==4.4.0
 django-db-connection-pool==1.2.5
@@ -109,3 +109,4 @@ protobuf==5.28.2
 swapper==1.4.0
 django_crontab==0.7.1
 Faker==27.0.0
+django-lexorank==0.1.3
