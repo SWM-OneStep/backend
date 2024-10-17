@@ -68,7 +68,9 @@ class UserRetrieveView(APIView):
                     "username": request.user.username,
                 }
             )
-            user = User.objects.get(username=request.user.username)
+            user = User.objects.get(
+                username=request.user.username, deleted_at__isnull=True
+            )
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except User.DoesNotExist as e:
@@ -102,12 +104,25 @@ class UserRetrieveView(APIView):
                 user.is_subscribed = request.data.get("is_subscribed")
             user.save()
             serializer = UserSerializer(user)
-            sentry_sdk.capture_message("User updated", level="info")
             return Response(serializer.data, status=status.HTTP_200_OK)
         except User.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def delete(self, request):
+        try:
+            user = request.user
+            user = User.delete_user(instance=user)
+            return Response(
+                {"message": "User deleted"}, status=status.HTTP_200_OK
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
