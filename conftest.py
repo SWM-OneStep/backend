@@ -159,4 +159,7 @@ def recommend_result():
 # FCM 알림 함수를 기본적으로 disable하는 fixture
 @pytest.fixture(autouse=True)
 def patch_send_push_notification_device(monkeypatch):
-    monkeypatch.setattr('todos.firebase_messaging.send_push_notification_device', lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "todos.firebase_messaging.send_push_notification_device",
+        lambda *args, **kwargs: None,
+    )

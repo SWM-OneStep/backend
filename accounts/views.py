@@ -131,3 +131,19 @@ class AndroidClientView(APIView):
                 {"error": "Android client id not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class IOSClientView(APIView):
+    def get(self, request):
+        try:
+            IOS_CLIENT_ID = settings.SECRETS.get("IOS_CLIENT_ID")
+            return Response(
+                {"ios_client_id": IOS_CLIENT_ID},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "IOS client id not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
