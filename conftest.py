@@ -33,7 +33,7 @@ def create_user(db):
 
 @pytest.fixture
 def authenticated_client(create_user):
-    client.force_authenticate(user=create_user)
+    client.force_authenticate(user=create_user, token={"device": None})
     yield client
     client.force_authenticate(user=None)  # logout
 
@@ -159,4 +159,4 @@ def recommend_result():
 # FCM 알림 함수를 기본적으로 disable하는 fixture
 @pytest.fixture(autouse=True)
 def patch_send_push_notification_device(monkeypatch):
-    monkeypatch.setattr('todos.firebase_messaging.send_push_notification_device', lambda: None)
+    monkeypatch.setattr('todos.firebase_messaging.send_push_notification_device', lambda *args, **kwargs: None)
