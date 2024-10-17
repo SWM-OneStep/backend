@@ -15,11 +15,11 @@ from datetime import timedelta
 from pathlib import Path
 
 import django.db.models.signals
+import pymysql
 import resend
 import sentry_sdk
 from openai import OpenAI
 from sentry_sdk.integrations.django import DjangoIntegration
-import pymysql
 
 from accounts.aws import get_secret
 

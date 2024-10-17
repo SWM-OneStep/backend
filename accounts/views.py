@@ -69,7 +69,7 @@ class UserRetrieveView(APIView):
                 }
             )
             user = User.objects.get(
-                username=request.user.username, deleted_at=None
+                username=request.user.username, deleted_at__isnull=True
             )
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -99,13 +99,9 @@ class UserRetrieveView(APIView):
                 }
             )
             if request.data.get("is_premium"):
-                user.is_premium = request.data.get(
-                    "is_premium", deleted_at=None
-                )
+                user.is_premium = request.data.get("is_premium")
             if request.data.get("is_subscribed"):
-                user.is_subscribed = request.data.get(
-                    "is_subscribed", deleted_at=None
-                )
+                user.is_subscribed = request.data.get("is_subscribed")
             user.save()
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -124,7 +120,7 @@ class UserRetrieveView(APIView):
     def delete(self, request):
         try:
             user = request.user
-            user = User.delete_user(user)
+            user = User.delete_user(instance=user)
             return Response(
                 {"message": "User deleted"}, status=status.HTTP_200_OK
             )

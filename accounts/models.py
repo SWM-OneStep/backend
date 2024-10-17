@@ -1,9 +1,8 @@
-from datetime import timezone
-
 import sentry_sdk
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from accounts.utils import send_email, send_welcome_email
@@ -71,7 +70,7 @@ class User(AbstractUser, TimeStamp):
         sentry_sdk.capture_message("Get User", level="info")
         return user
 
-    def delete_user(self, instance):
+    def delete_user(instance):
         instance.deleted_at = timezone.now()
         instance.save(update_fields=["deleted_at"])
         return instance
