@@ -19,8 +19,7 @@ class TimeStamp(models.Model):
 class User(AbstractUser, TimeStamp):
     class SocialProvider(models.TextChoices):
         GOOGLE = "GOOGLE"
-        KAKAO = "KAKAO"
-        NAVER = "NAVER"
+        APPLE = "APPLE"
 
     username_validator = UnicodeUsernameValidator()
     username = models.CharField(
@@ -57,7 +56,6 @@ class User(AbstractUser, TimeStamp):
                 email,
                 user.username,
             )
-            sentry_sdk.capture_message("Sent welcome email", level="info")
         except Exception as e:
             sentry_sdk.capture_exception(e)
             sentry_sdk.capture_message(
