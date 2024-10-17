@@ -1,3 +1,5 @@
+from datetime import timezone
+
 import sentry_sdk
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
@@ -68,6 +70,11 @@ class User(AbstractUser, TimeStamp):
         sentry_sdk.set_user({"id": user.id})
         sentry_sdk.capture_message("Get User", level="info")
         return user
+
+    def delete_user(self, instance):
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=["deleted_at"])
+        return instance
 
 
 class Device(models.Model):
