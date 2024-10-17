@@ -16,4 +16,5 @@ urlpatterns = [
     path("login/google/", GoogleLogin.as_view(), name="google_login"),
     path("user/", UserRetrieveView.as_view(), name="user"),
     path("android/", AndroidClientView.as_view(), name="android"),
+    path("ios/", AndroidClientView.as_view(), name="ios"),
 ]
