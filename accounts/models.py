@@ -48,9 +48,6 @@ class User(AbstractUser, TimeStamp):
         try:
             user = User.objects.get(username=email)
         except User.DoesNotExist:
-            sentry_sdk.capture_message(
-                "User does not exist. Creating new user"
-            )
             user = User.objects.create(username=email, password="")
             send_welcome_email(
                 email,
@@ -63,8 +60,6 @@ class User(AbstractUser, TimeStamp):
             )
             raise e
 
-        sentry_sdk.set_user({"id": user.id})
-        sentry_sdk.capture_message("Get User", level="info")
         return user
 
 

@@ -85,7 +85,7 @@ class TestGoogleLogin:
 
     @patch("accounts.views.id_token.verify_oauth2_token")
     @patch("accounts.models.send_welcome_email")
-    def test_google_login_new_user(
+    def test_google_login_android_new_user(
         self, mock_send_welcome_email, mock_verify_oauth2_token, api_client
     ):
         # Mock the token verification response
@@ -98,7 +98,94 @@ class TestGoogleLogin:
         url = reverse("google_login")
 
         # Create a mock request
-        data = {"token": "mock_token", "device_token": "mock_device_token"}
+        data = {
+            "token": "mock_token",
+            "device_token": "mock_device_token",
+            "type": 0,
+        }
+
+        # Call the view
+        response = api_client.post(url, data, format="json")
+
+        # Check that the user was created
+        user = User.objects.get(username="testuser@example.com")
+        assert user is not None
+
+        # Check that the device was created
+        device = FCMDevice.objects.get(
+            user_id=user.id, registration_id="mock_device_token"
+        )
+        assert device is not None
+
+        # Check that the email was sent
+        mock_send_welcome_email.assert_called_once_with(
+            user.username,
+            user.username,
+        )
+
+        # Check the response status
+        assert response.status_code == status.HTTP_200_OK
+        assert "refresh" in response.data
+        assert "access" in response.data
+
+    @patch("accounts.views.id_token.verify_oauth2_token")
+    @patch("accounts.models.send_welcome_email")
+    def test_google_login_ios_new_user(
+        self, mock_send_welcome_email, mock_verify_oauth2_token, api_client
+    ):
+        # Mock the token verification response
+        mock_verify_oauth2_token.return_value = {
+            "iss": "accounts.google.com",
+            "email": "testuser@example.com",
+        }
+
+        # Define the URL for the GoogleLogin view
+        url = reverse("google_login")
+
+        # Create a mock request
+        data = {
+            "token": "mock_token",
+            "type": 1,
+        }
+
+        # Call the view
+        response = api_client.post(url, data, format="json")
+
+        # Check that the user was created
+        user = User.objects.get(username="testuser@example.com")
+        assert user is not None
+
+        # Check that the email was sent
+        mock_send_welcome_email.assert_called_once_with(
+            user.username,
+            user.username,
+        )
+
+        # Check the response status
+        assert response.status_code == status.HTTP_200_OK
+        assert "refresh" in response.data
+        assert "access" in response.data
+
+    @patch("accounts.views.id_token.verify_oauth2_token")
+    @patch("accounts.models.send_welcome_email")
+    def test_google_login_ios_new_user_with_device(
+        self, mock_send_welcome_email, mock_verify_oauth2_token, api_client
+    ):
+        # Mock the token verification response
+        mock_verify_oauth2_token.return_value = {
+            "iss": "accounts.google.com",
+            "email": "testuser@example.com",
+        }
+
+        # Define the URL for the GoogleLogin view
+        url = reverse("google_login")
+
+        # Create a mock request
+        data = {
+            "token": "mock_token",
+            "device_token": "mock_device_token",
+            "type": 1,
+        }
 
         # Call the view
         response = api_client.post(url, data, format="json")

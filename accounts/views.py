@@ -17,30 +17,26 @@ User = get_user_model()
 
 
 JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
-GOOGLE_CLIENT_ID = settings.SECRETS.get("GCID")
+GOOGLE_ANDROID_CLIENT_ID = settings.SECRETS.get("GCID")
+GOOGLE_IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
 
 
 class GoogleLogin(APIView):
+    """
+    request : token, device_token, type(0 : android, 1 : ios)
+    """
+
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
-        token = request.data.get("token")
-        device_token = request.data.get("device_token")
-        if not device_token or not token:
-            sentry_sdk.capture_exception(LoginException())
-            raise LoginException()
         try:
-            idinfo = id_token.verify_oauth2_token(
-                token, requests.Request(), audience=GOOGLE_CLIENT_ID
-            )
+            device_type, token, device_token = self.validate_request(request)
+            idinfo = self.verify_token(device_type, token)
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
                 user = User.get_or_create_user(email)
-                FCMDevice.objects.get_or_create(
-                    user=user, registration_id=device_token
-                )
-                refresh = CustomRefreshToken.for_user(user, device_token)
+                refresh = self.handle_device_token(user, device_token)
                 return Response(
                     {
                         "refresh": str(refresh),
@@ -53,6 +49,39 @@ class GoogleLogin(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
+
+    def validate_request(self, request):
+        device_type = request.data.get("type", None)
+        token = request.data.get("token")
+        device_token = request.data.get("device_token", None)
+        if not token or device_type is None:
+            raise LoginException()
+        if device_type == 0 and not device_token:
+            raise LoginException("Device token is required for android login")
+        return device_type, token, device_token
+
+    def verify_token(self, device_type, token):
+        if device_type == 0:  # Android
+            return id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                audience=GOOGLE_ANDROID_CLIENT_ID,
+            )
+        elif device_type == 1:  # iOS
+            return id_token.verify_oauth2_token(
+                token, requests.Request(), audience=GOOGLE_IOS_CLIENT_ID
+            )
+        else:
+            raise LoginException("Invalid device type")
+
+    def handle_device_token(self, user, device_token):
+        if device_token:
+            FCMDevice.objects.get_or_create(
+                user=user, registration_id=device_token
+            )
+            return CustomRefreshToken.for_user(user, device_token)
+        else:
+            return CustomRefreshToken.for_user_without_device(user)
 
 
 class UserRetrieveView(APIView):
@@ -120,9 +149,8 @@ class UserRetrieveView(APIView):
 class AndroidClientView(APIView):
     def get(self, request):
         try:
-            ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
             return Response(
-                {"android_client_id": ANDROID_CLIENT_ID},
+                {"android_client_id": GOOGLE_ANDROID_CLIENT_ID},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
@@ -136,7 +164,6 @@ class AndroidClientView(APIView):
 class IOSClientView(APIView):
     def get(self, request):
         try:
-            GOOGLE_IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
             return Response(
                 {"ios_client_id": GOOGLE_IOS_CLIENT_ID},
                 status=status.HTTP_200_OK,
