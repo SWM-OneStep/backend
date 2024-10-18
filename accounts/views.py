@@ -136,9 +136,9 @@ class AndroidClientView(APIView):
 class IOSClientView(APIView):
     def get(self, request):
         try:
-            IOS_CLIENT_ID = settings.SECRETS.get("IOS_CLIENT_ID")
+            GOOGLE_IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
             return Response(
-                {"ios_client_id": IOS_CLIENT_ID},
+                {"ios_client_id": GOOGLE_IOS_CLIENT_ID},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
