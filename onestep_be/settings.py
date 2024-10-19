@@ -18,7 +18,7 @@ import django.db.models.signals
 import pymysql
 import resend
 import sentry_sdk
-from openai import OpenAI
+from openai import AsyncOpenAI
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
@@ -189,7 +189,7 @@ DATABASES = {
 
 # Add OpenAI API Key
 OPENAI_API_KEY = SECRETS.get("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
