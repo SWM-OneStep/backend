@@ -775,7 +775,7 @@ class RecommendSubTodo(APIView):
         """
         set_sentry_user(request.user)
 
-        user_id = request.GET.get("user_id")
+        user_id = request.user.id
         flag, message = UserLastUsage.check_rate_limit(
             user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
         )
@@ -816,7 +816,6 @@ class RecommendSubTodo(APIView):
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            print("error", e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )

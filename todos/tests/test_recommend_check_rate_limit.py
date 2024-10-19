@@ -1,5 +1,6 @@
-import asyncio
-from unittest.mock import patch
+# import asyncio
+import time
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
@@ -10,7 +11,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 @pytest.mark.django_db
 @pytest.mark.asyncio
-@patch("todos.views.client.chat.completions.create")
+@patch("todos.views.openai_client.chat.completions.create")
 async def test_rate_limit_exceeded(
     mock_llm, create_user, create_todo, recommend_result
 ):
@@ -27,6 +28,8 @@ async def test_rate_limit_exceeded(
             }
         )
         response = await client.get(url, params={"todo_id": create_todo.id})
+    if response.status_code == status.HTTP_400_BAD_REQUEST:
+        print(response)
     assert response.status_code == status.HTTP_200_OK
 
     async with httpx.AsyncClient() as client:
@@ -44,8 +47,10 @@ async def test_rate_limit_exceeded(
 
 @pytest.mark.django_db
 @pytest.mark.asyncio
-@patch("todos.views.client.chat.completions.create")
-async def test_rate_limit_passed(
+@patch(
+    "todos.views.openai_client.chat.completions.create", new_callable=AsyncMock
+)
+def test_rate_limit_passed(
     mock_llm, authenticated_client, create_todo, recommend_result
 ):
     url = "https://dev.stepby.one/todos/recommend/"
@@ -54,7 +59,7 @@ async def test_rate_limit_passed(
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
 
-    await asyncio.sleep(10)  # Non-blocking sleep
+    time.sleep(10)  # Non-blocking sleep
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
@@ -62,7 +67,7 @@ async def test_rate_limit_passed(
 
 @pytest.mark.django_db
 @pytest.mark.asyncio
-@patch("todos.views.client.chat.completions.create")
+@patch("todos.views.openai_client.chat.completions.create")
 async def test_rate_limit_premium(
     mock_llm, authenticated_client, create_user, create_todo, recommend_result
 ):

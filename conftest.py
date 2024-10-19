@@ -146,7 +146,7 @@ def recommend_result():
             message=Mock(
                 content=(
                     '{"id": 1, "content": "study algebra", "date": "2024-09-01", '  # noqa: E501
-                    '"due_time": "None", "category_id": 1 '
+                    '"due_time": "None", "category_id": 1, '
                     '"is_completed": false, "children": []}'
                 )
             )
