@@ -1,10 +1,7 @@
-from datetime import timedelta
-
 import jwt
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 from fcm_django.models import FCMDevice
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -60,8 +57,6 @@ class GoogleLogin(APIView):
         device_token = request.data.get("device_token", None)
         if not token or device_type is None:
             raise LoginException()
-        if device_type == 0 and not device_token:
-            raise LoginException("Device token is required for android login")
         return device_type, token, device_token
 
     def verify_token(self, device_type, token):
@@ -93,12 +88,7 @@ class AppleLogin(APIView):
     request : token, device_token, type(0 : android, 1 : ios)
     """
 
-    ACCESS_TOKEN_URL = "https://appleid.apple.com/auth/token"
-    APPLE_APP_ID = settings.SECRETS.get("APPLE_APP_ID")
     APPLE_SERVICE_ID = settings.SECRETS.get("APPLE_SERVICE_ID")
-    APPLE_CERTICATE_FILE = settings.SECRETS.get("APPLE_CERTICATE_FILE")
-    APPLE_KEY = settings.SECRETS.get("APPLE_KEY")
-    APPLE_KEY_ID = settings.SECRETS.get("APPLE_KEY_ID")
     APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
 
     authentication_classes = []
@@ -107,109 +97,65 @@ class AppleLogin(APIView):
     def post(self, request):
         try:
             device_type, token, device_token = self.validate_request(request)
-            idinfo = self.verify_token(device_type, token)
-            if "accounts.google.com" in idinfo["iss"]:
-                email = idinfo["email"]
-                user = User.get_or_create_user(email)
-                refresh = self.handle_device_token(user, device_token)
-                return Response(
-                    {
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token),
-                    },
-                    status=status.HTTP_200_OK,
-                )
+            # verify apple token and get email
+            email = self.verify_token(device_type, token)
+            user = User.get_or_create_user(email)
+            refresh = self.handle_device_token(user, device_token)
+            return Response(
+                {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
-    def verify_token(self, access_token):
+    def verify_token(self, token):
         """
         Finish the auth process once the access_token was retrieved
         Get the email from ID token received from apple
         """
-
-        client_id, client_secret = self.get_key_and_secret()
-
-        headers = {"content-type": "application/x-www-form-urlencoded"}
-        data = {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "refresh_token": access_token,
-            "grant_type": "refresh_token",
-        }
-        try:
-            response = requests.post(
-                AppleLogin.ACCESS_TOKEN_URL, data=data, headers=headers
-            )
-            response_dict = response.json()
-            id_token = response_dict.get("id_token", None)
-
-            if id_token:
-                decoded_user_info = self.verify_apple_token(id_token)
-                return decoded_user_info
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            raise Exception(e)
-
-        raise LoginException("Invalid token")
-
-    def verify_apple_token(self, token):
-        # Fetch Apple's public keys
+        # Apple 공개 키 가져오기
         response = requests.get(AppleLogin.APPLE_PUBLIC_KEYS_URL)
         if response.status_code != 200:
             raise LoginException("Unable to fetch Apple's public keys")
         apple_public_keys = response.json()["keys"]
+        # JWT 디코드 및 서명 검증
+        header = jwt.get_unverified_header(token)
 
-        # Decode the token header to get the key ID
-        headers = jwt.get_unverified_header(token)
-        kid = headers["kid"]
+        # 헤더의 'kid'와 일치하는 Apple 공개 키 선택
+        public_key = next(
+            key
+            for key in apple_public_keys["keys"]
+            if key["kid"] == header["kid"]
+        )
 
-        # Find the corresponding public key
-        key = next((k for k in apple_public_keys if k["kid"] == kid), None)
-        if key is None:
+        if public_key is None:
             raise LoginException("Invalid token")
-
-        # Construct the public key
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
 
         # Verify the token
         try:
-            idinfo = jwt.decode(
-                token,
+            decoded_token = jwt.decode(
+                id_token,
                 public_key,
-                algorithms=["RS256"],
+                algorithms=["RS256"],  # Apple의 서명 알고리즘
                 audience=AppleLogin.APPLE_SERVICE_ID,
                 issuer="https://appleid.apple.com",
             )
+            return decoded_token.get("email")
         except jwt.ExpiredSignatureError:
+            sentry_sdk.capture_exception(jwt.ExpiredSignatureError)
             raise LoginException("Token has expired")
         except jwt.InvalidTokenError:
+            sentry_sdk.capture_exception(jwt.ExpiredSignatureError)
             raise LoginException("Invalid token")
-
-        return idinfo
-
-    def get_key_and_secret(self):
-        headers = {"alg": "ES256", "kid": AppleLogin.APPLE_KEY_ID}
-
-        payload = {
-            "iss": AppleLogin.APPLE_KEY,
-            "iat": timezone.now(),
-            "exp": timezone.now() + timedelta(days=1),
-            "aud": "https://appleid.apple.com",
-            "sub": AppleLogin.APPLE_SERVICE_ID,
-        }
-
-        client_secret = jwt.encode(
-            payload,
-            AppleLogin.APPLE_CERTICATE_FILE,
-            algorithm="ES256",
-            headers=headers,
-        ).decode("utf-8")
-
-        return AppleLogin.APPLE_SERVICE_ID, client_secret
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException("An unexpected error occurred")
 
     def validate_request(self, request):
         device_type = request.data.get("type", None)
@@ -217,8 +163,6 @@ class AppleLogin(APIView):
         device_token = request.data.get("device_token", None)
         if not token or device_type is None:
             raise LoginException()
-        if device_type == 0 and not device_token:
-            raise LoginException("Device token is required for android login")
         return device_type, token, device_token
 
     def handle_device_token(self, user, device_token):
