@@ -250,7 +250,7 @@ except FileNotFoundError:
 # sentry settings
 
 
-def set_sentry_setting(SENTRY_ENVIRONMENT):
+def set_sentry_init_setting(SENTRY_ENVIRONMENT):
     sentry_sdk.init(
         dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
         traces_sample_rate=0.1,
