@@ -1,5 +1,5 @@
-from onestep_be.settings import *
-
+from accounts.aws import get_secret
+from onestep_be.settings import set_sentry_setting
 
 SECRETS = eval(get_secret())
 
@@ -14,3 +14,4 @@ DATABASES = {
     }
 }
 
+set_sentry_setting("Development")

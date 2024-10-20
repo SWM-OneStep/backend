@@ -249,24 +249,27 @@ except FileNotFoundError:
 
 # sentry settings
 
-sentry_sdk.init(
-    dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
-    traces_sample_rate=0.1,
-    release=PROJECT_VERSION,
-    profiles_sample_rate=0.1,
-    integrations=[
-        DjangoIntegration(
-            transaction_style="url",
-            middleware_spans=True,
-            signals_spans=True,
-            signals_denylist=[
-                django.db.models.signals.pre_init,
-                django.db.models.signals.post_init,
-            ],
-            cache_spans=False,
-        ),
-    ],
-)
+
+def set_sentry_setting(SENTRY_ENVIRONMENT):
+    sentry_sdk.init(
+        dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
+        traces_sample_rate=0.1,
+        release=PROJECT_VERSION,
+        profiles_sample_rate=0.1,
+        environment=SENTRY_ENVIRONMENT,
+        integrations=[
+            DjangoIntegration(
+                transaction_style="url",
+                middleware_spans=True,
+                signals_spans=True,
+                signals_denylist=[
+                    django.db.models.signals.pre_init,
+                    django.db.models.signals.post_init,
+                ],
+                cache_spans=False,
+            ),
+        ],
+    )
 
 
 resend.api_key = SECRETS.get("RESEND")
