@@ -36,12 +36,13 @@ class GoogleLogin(APIView):
             idinfo = self.verify_token(device_type, token)
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                user = User.get_or_create_user(email)
+                user, is_new = User.get_or_create_user(email)
                 refresh = self.handle_device_token(user, device_token)
                 return Response(
                     {
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
+                        "is_new": is_new,
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -99,12 +100,13 @@ class AppleLogin(APIView):
             device_type, token, device_token = self.validate_request(request)
             # verify apple token and get email
             email = self.verify_token(device_type, token)
-            user = User.get_or_create_user(email)
+            user, is_new = User.get_or_create_user(email)
             refresh = self.handle_device_token(user, device_token)
             return Response(
                 {
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
+                    "is_new": is_new,
                 },
                 status=status.HTTP_200_OK,
             )
