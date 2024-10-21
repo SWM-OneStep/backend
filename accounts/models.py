@@ -47,16 +47,15 @@ class User(AbstractUser, TimeStamp):
     @classmethod
     def get_or_create_user(self, email):
         try:
+            is_new = False
             user = User.objects.get(username=email)
         except User.DoesNotExist:
-            sentry_sdk.capture_message(
-                "User does not exist. Creating new user"
-            )
             user = User.objects.create(username=email, password="")
             send_welcome_email(
                 email,
                 user.username,
             )
+            is_new = True
         except Exception as e:
             sentry_sdk.capture_exception(e)
             sentry_sdk.capture_message(
@@ -64,9 +63,7 @@ class User(AbstractUser, TimeStamp):
             )
             raise e
 
-        sentry_sdk.set_user({"id": user.id})
-        sentry_sdk.capture_message("Get User", level="info")
-        return user
+        return user, is_new
 
     def delete_user(instance):
         instance.deleted_at = timezone.now()

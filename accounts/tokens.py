@@ -7,3 +7,8 @@ class CustomRefreshToken(RefreshToken):
         token = super().for_user(user)
         token["device"] = device_token
         return token
+
+    @classmethod
+    def for_user_without_device(cls, user):
+        token = super().for_user(user)
+        return token
