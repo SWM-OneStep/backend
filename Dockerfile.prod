@@ -15,6 +15,6 @@ COPY . /app/
 EXPOSE 8000
 
 # 서버 실행 명령
-CMD ["sh", "-c", "python manage.py makemigrations && python manage.py migrate && DJANGO_SETTINGS_MODULE=onestep_be.setting.prod python -m gunicorn -w 2 -b 0.0.0.0:8000 onestep_be.asgi:application -k uvicorn_workers.UvicornWorker"]
+CMD ["sh", "-c", "python manage.py makemigrations && python manage.py migrate && DJANGO_SETTINGS_MODULE=onestep_be.setting.prod python -m gunicorn -w 2 -b 0.0.0.0:8000 onestep_be.asgi:application -k uvicorn_worker.UvicornWorker"]
 # CMD ["sh", "-c", "python manage.py makemigrations && python manage.py migrate && DJANGO_SETTINGS_MODULE=onestep_be.setting.prod gunicorn -w 2 --timeout 300 -b 0.0.0.0:8000 onestep_be.wsgi:application"]
 # CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --settings=onestep_be.setting.prod"]
