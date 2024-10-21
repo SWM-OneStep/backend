@@ -64,6 +64,23 @@ def test_update_user_is_premium(
 
 
 @pytest.mark.django_db
+def test_delete_user(
+    create_user,
+    authenticated_client,
+):
+    url = reverse("user")  # URL name for the categoryView patch method
+    response = authenticated_client.delete(url, {}, format="json")
+    assert response.status_code == 200
+
+    assert (
+        User.objects.filter(
+            id=create_user.id, deleted_at__isnull=True
+        ).exists()
+        is False
+    )
+
+
+@pytest.mark.django_db
 def test_google_login(invalid_token):
     client = APIClient()
     response = client.post(reverse("google_login"), data=invalid_token)
