@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import (
 from accounts.views import (
     AndroidClientView,
     GoogleLogin,
+    IOSClientView,
     UserRetrieveView,
 )
 
@@ -16,5 +17,5 @@ urlpatterns = [
     path("login/google/", GoogleLogin.as_view(), name="google_login"),
     path("user/", UserRetrieveView.as_view(), name="user"),
     path("android/", AndroidClientView.as_view(), name="android"),
-    path("ios/", AndroidClientView.as_view(), name="ios"),
+    path("ios/", IOSClientView.as_view(), name="ios"),
 ]
