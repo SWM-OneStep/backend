@@ -249,8 +249,9 @@ except FileNotFoundError:
 
 # sentry settings
 
+SENTRY_DSN = SECRETS.get("SENTRY_DSN")
 sentry_sdk.init(
-    dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
+    dsn=SENTRY_DSN,
     traces_sample_rate=0.1,
     release=PROJECT_VERSION,
     profiles_sample_rate=0.1,
