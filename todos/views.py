@@ -776,22 +776,25 @@ class RecommendSubTodo(APIView):
         set_sentry_user(request.user)
 
         user_id = request.user.id
-        flag, message = UserLastUsage.check_rate_limit(
-            user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
-        )
-        if flag is False:
-            return Response(
-                {"error": message}, status=status.HTTP_429_TOO_MANY_REQUESTS
-            )
-        todo_id = request.GET.get("todo_id")
-        if todo_id is None:
-            sentry_sdk.capture_message("Todo_id not provided", level="error")
-            return Response(
-                {"error": "todo_id must be provided"},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            flag, message = UserLastUsage.check_rate_limit(
+                user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
             )
 
-        try:
+            if flag is False:
+                return Response(
+                    {"error": message},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+            todo_id = request.GET.get("todo_id")
+            if todo_id is None:
+                sentry_sdk.capture_message(
+                    "Todo_id not provided", level="error"
+                )
+                return Response(
+                    {"error": "todo_id must be provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             # 비동기적으로 OpenAI API 호출 처리
             todo = Todo.objects.get_with_id(id=todo_id)
             todo_data = {
@@ -808,7 +811,6 @@ class RecommendSubTodo(APIView):
                 json.loads(completion.choices[0].message.content),
                 status=status.HTTP_200_OK,
             )
-
         except Todo.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
             return Response(
