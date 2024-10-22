@@ -1,3 +1,4 @@
+import jwt
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,34 +18,33 @@ User = get_user_model()
 
 
 JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
-GOOGLE_CLIENT_ID = settings.SECRETS.get("GCID")
+GOOGLE_ANDROID_CLIENT_ID = settings.SECRETS.get("GCID")
+GOOGLE_IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
+DEVICE_TYPE_ANDROID = 0
+DEVICE_TYPE_IOS = 1
 
 
 class GoogleLogin(APIView):
+    """
+    request : token, device_token, type(0 : android, 1 : ios)
+    """
+
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
-        token = request.data.get("token")
-        device_token = request.data.get("device_token")
-        if not device_token or not token:
-            sentry_sdk.capture_exception(LoginException())
-            raise LoginException()
         try:
-            idinfo = id_token.verify_oauth2_token(
-                token, requests.Request(), audience=GOOGLE_CLIENT_ID
-            )
+            device_type, token, device_token = self.validate_request(request)
+            idinfo = self.verify_token(device_type, token)
             if "accounts.google.com" in idinfo["iss"]:
                 email = idinfo["email"]
-                user = User.get_or_create_user(email)
-                FCMDevice.objects.get_or_create(
-                    user=user, registration_id=device_token
-                )
-                refresh = CustomRefreshToken.for_user(user, device_token)
+                user, is_new = User.get_or_create_user(email)
+                refresh = self.handle_device_token(user, device_token)
                 return Response(
                     {
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
+                        "is_new": is_new,
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -53,6 +53,130 @@ class GoogleLogin(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
+
+    def validate_request(self, request):
+        device_type = request.data.get("type", None)
+        token = request.data.get("token")
+        device_token = request.data.get("device_token", None)
+        if not token or device_type is None:
+            raise LoginException()
+        return device_type, token, device_token
+
+    def verify_token(self, device_type, token):
+        if device_type == DEVICE_TYPE_ANDROID:  # Android
+            return id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                audience=GOOGLE_ANDROID_CLIENT_ID,
+            )
+        elif device_type == DEVICE_TYPE_IOS:  # iOS
+            return id_token.verify_oauth2_token(
+                token, requests.Request(), audience=GOOGLE_IOS_CLIENT_ID
+            )
+        else:
+            raise LoginException("Invalid device type")
+
+    def handle_device_token(self, user, device_token):
+        if device_token:
+            FCMDevice.objects.get_or_create(
+                user=user, registration_id=device_token
+            )
+            return CustomRefreshToken.for_user(user, device_token)
+        else:
+            return CustomRefreshToken.for_user_without_device(user)
+
+
+class AppleLogin(APIView):
+    """
+    request : token, device_token, type(0 : android, 1 : ios)
+    """
+
+    APPLE_SERVICE_ID = settings.SECRETS.get("APPLE_SERVICE_ID")
+    APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            device_type, token, device_token = self.validate_request(request)
+            # verify apple token and get email
+            email = self.verify_token(device_type, token)
+            user, is_new = User.get_or_create_user(email)
+            refresh = self.handle_device_token(user, device_token)
+            return Response(
+                {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "is_new": is_new,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def verify_token(self, token):
+        """
+        Finish the auth process once the access_token was retrieved
+        Get the email from ID token received from apple
+        """
+        # Apple 공개 키 가져오기
+        response = requests.get(AppleLogin.APPLE_PUBLIC_KEYS_URL)
+        if response.status_code != 200:
+            raise LoginException("Unable to fetch Apple's public keys")
+        apple_public_keys = response.json()["keys"]
+        # JWT 디코드 및 서명 검증
+        header = jwt.get_unverified_header(token)
+
+        # 헤더의 'kid'와 일치하는 Apple 공개 키 선택
+        public_key = next(
+            key
+            for key in apple_public_keys["keys"]
+            if key["kid"] == header["kid"]
+        )
+
+        if public_key is None:
+            raise LoginException("Invalid token")
+
+        # Verify the token
+        try:
+            decoded_token = jwt.decode(
+                id_token,
+                public_key,
+                algorithms=["RS256"],  # Apple의 서명 알고리즘
+                audience=AppleLogin.APPLE_SERVICE_ID,
+                issuer="https://appleid.apple.com",
+            )
+            return decoded_token.get("email")
+        except jwt.ExpiredSignatureError:
+            sentry_sdk.capture_exception(jwt.ExpiredSignatureError)
+            raise LoginException("Token has expired")
+        except jwt.InvalidTokenError:
+            sentry_sdk.capture_exception(jwt.ExpiredSignatureError)
+            raise LoginException("Invalid token")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException("An unexpected error occurred")
+
+    def validate_request(self, request):
+        device_type = request.data.get("type", None)
+        token = request.data.get("token")
+        device_token = request.data.get("device_token", None)
+        if not token or device_type is None:
+            raise LoginException()
+        return device_type, token, device_token
+
+    def handle_device_token(self, user, device_token):
+        if device_token:
+            FCMDevice.objects.get_or_create(
+                user=user, registration_id=device_token
+            )
+            return CustomRefreshToken.for_user(user, device_token)
+        else:
+            return CustomRefreshToken.for_user_without_device(user)
 
 
 class UserRetrieveView(APIView):
@@ -135,9 +259,8 @@ class UserRetrieveView(APIView):
 class AndroidClientView(APIView):
     def get(self, request):
         try:
-            ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
             return Response(
-                {"android_client_id": ANDROID_CLIENT_ID},
+                {"android_client_id": GOOGLE_ANDROID_CLIENT_ID},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
@@ -151,9 +274,8 @@ class AndroidClientView(APIView):
 class IOSClientView(APIView):
     def get(self, request):
         try:
-            IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
             return Response(
-                {"ios_client_id": IOS_CLIENT_ID},
+                {"ios_client_id": GOOGLE_IOS_CLIENT_ID},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
