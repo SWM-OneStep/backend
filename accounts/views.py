@@ -20,6 +20,8 @@ User = get_user_model()
 JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
 GOOGLE_ANDROID_CLIENT_ID = settings.SECRETS.get("GCID")
 GOOGLE_IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
+DEVICE_TYPE_ANDROID = 0
+DEVICE_TYPE_IOS = 1
 
 
 class GoogleLogin(APIView):
@@ -61,13 +63,13 @@ class GoogleLogin(APIView):
         return device_type, token, device_token
 
     def verify_token(self, device_type, token):
-        if device_type == 0:  # Android
+        if device_type == DEVICE_TYPE_ANDROID:  # Android
             return id_token.verify_oauth2_token(
                 token,
                 requests.Request(),
                 audience=GOOGLE_ANDROID_CLIENT_ID,
             )
-        elif device_type == 1:  # iOS
+        elif device_type == DEVICE_TYPE_IOS:  # iOS
             return id_token.verify_oauth2_token(
                 token, requests.Request(), audience=GOOGLE_IOS_CLIENT_ID
             )
