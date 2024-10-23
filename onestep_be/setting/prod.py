@@ -1,5 +1,4 @@
 from accounts.aws import get_secret
-from onestep_be.settings import set_sentry_setting
 
 ALLOWED_HOSTS = ["*"]
 DEBUG = False
@@ -15,5 +14,3 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     }
 }
-
-set_sentry_setting("Production")

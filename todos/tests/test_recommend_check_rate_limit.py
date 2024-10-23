@@ -66,10 +66,12 @@ def test_rate_limit_premium(
 
 
 @pytest.mark.django_db
-def test_time_openAI(authenticated_client, create_todo, benchmark):
+def test_openAI_five_times(authenticated_client, create_todo):
     url = reverse("recommend")
 
-    response = benchmark(
-        lambda: authenticated_client.get(url, {"todo_id": create_todo.id})
-    )
+    for _ in range(5):
+        response = authenticated_client.get(url, {"todo_id": create_todo.id})
+        assert response.status_code == status.HTTP_200_OK
+
+    response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK

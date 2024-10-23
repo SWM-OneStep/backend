@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from onestep_be.settings import openai_client
 from todos.firebase_messaging import send_push_notification_device
-from todos.models import Category, SubTodo, Todo, UserLastUsage
+from todos.models import Category, SubTodo, Todo
 from todos.serializers import (
     CategorySerializer,
     GetTodoSerializer,
@@ -74,7 +74,6 @@ class TodoView(APIView):
             )
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
@@ -775,17 +774,17 @@ class RecommendSubTodo(APIView):
         """
         set_sentry_user(request.user)
 
-        user_id = request.user.id
+        # user_id = request.user.id
         try:
-            flag, message = UserLastUsage.check_rate_limit(
-                user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
-            )
+            # flag, message = UserLastUsage.check_rate_limit(
+            #     user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
+            # )
 
-            if flag is False:
-                return Response(
-                    {"error": message},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                )
+            # if flag is False:
+            #     return Response(
+            #         {"error": message},
+            #         status=status.HTTP_429_TOO_MANY_REQUESTS,
+            #     )
             todo_id = request.GET.get("todo_id")
             if todo_id is None:
                 sentry_sdk.capture_message(
@@ -803,8 +802,6 @@ class RecommendSubTodo(APIView):
                 "date": todo.date,
                 "due_time": todo.due_time,
                 "category_id": todo.category_id,
-                "rank": todo.rank,
-                "is_completed": todo.is_completed,
             }
             completion = asyncio.run(self.get_openai_completion(todo_data))
             return Response(
@@ -830,28 +827,26 @@ class RecommendSubTodo(APIView):
                 {
                     "role": "system",
                     "content": """너는 퍼스널 매니저야.
-        너가 하는 일은 이 사람이 할 이야기를 듣고 약 1시간 정도면 끝낼 수 있도록 작업을 나눠주는 식으로 진행할 거야.
-        아래는 너가 나눠줄 작업 형식이야.
-        { id : 1, content: "3학년 2학기 운영체제 중간고사 준비", date="2024-09-01", due_time="2024-09-24"}
-        이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
-        Output a JSON object structured like:
-        {id, content, date, due_time, category_id, rank, is_completed, children : [
-        {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id)}]}
-        [조건]
-        - date 는 부모의 date를 따를 것
-        - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
-        - 언어는 주어진 todo content의 언어에 따를 것
-        """,  # noqa: E501
+                        너가 하는 일은 이 사람이 할 이야기를 듣고 작업을 나눠줘야 해.
+                        아래는 너가 나눠줄 작업 형식이야.
+                        { id : 1, content: "운영체제 중간고사 준비", date="2024-09-01", due_time=None}
+                        이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
+                        Output a JSON object structured like:
+                        {id, content, date, due_time, category_id, children : [
+                        {content, date, todo(parent todo id)}, ...}]}
+                        [조건]
+                        - date 는 부모의 date를 따를 것
+                        - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
+                        - 언어는 주어진 todo content의 언어에 따를 것
+                        """,  # noqa: E501
                 },
                 {
                     "role": "user",
                     "content": f"id: {todo["id"]}, \
-                content: {todo["content"]}, \
-                date: {todo["date"]}, \
-                due_time: {todo["due_time"]}, \
-                category_id: {todo["category_id"]}, \
-                rank: {todo["rank"]}, \
-                is_completed: {todo["is_completed"]}",
+                        content: {todo["content"]}, \
+                        date: {todo["date"]}, \
+                        due_time: {todo["due_time"]}, \
+                        category_id: {todo["category_id"]}",
                 },
             ],
             response_format={"type": "json_object"},

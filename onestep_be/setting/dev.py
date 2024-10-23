@@ -1,5 +1,4 @@
 from accounts.aws import get_secret
-from onestep_be.settings import set_sentry_init_setting
 
 SECRETS = eval(get_secret())
 
@@ -13,5 +12,3 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     }
 }
-
-set_sentry_init_setting("Development")
