@@ -253,6 +253,9 @@ try:
         PROJECT_VERSION = file.read().strip()
         if PROJECT_VERSION == "":
             PROJECT_VERSION = "Unknown"
+            SENTRY_ENVIRONMENT = "localhost"
+        else:
+            SENTRY_ENVIRONMENT = PROJECT_VERSION.split("@")[0]
 except FileNotFoundError:
     PROJECT_VERSION = "Unknown"  # 파일이 없을 경우 기본값
 
@@ -260,26 +263,24 @@ except FileNotFoundError:
 SENTRY_DSN = SECRETS.get("SENTRY_DSN")
 
 
-def set_sentry_init_setting(SENTRY_ENVIRONMENT):
-    sentry_sdk.init(
-        dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
-        traces_sample_rate=0.1,
-        release=PROJECT_VERSION,
-        profiles_sample_rate=0.1,
-        environment=SENTRY_ENVIRONMENT,
-        integrations=[
-            DjangoIntegration(
-                transaction_style="url",
-                middleware_spans=True,
-                signals_spans=True,
-                signals_denylist=[
-                    django.db.models.signals.pre_init,
-                    django.db.models.signals.post_init,
-                ],
-                cache_spans=False,
-            ),
-        ],
-    )
-
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    traces_sample_rate=1.0,
+    release=PROJECT_VERSION,
+    profiles_sample_rate=1.0,
+    environment=SENTRY_ENVIRONMENT,
+    integrations=[
+        DjangoIntegration(
+            transaction_style="url",
+            middleware_spans=True,
+            signals_spans=True,
+            signals_denylist=[
+                django.db.models.signals.pre_init,
+                django.db.models.signals.post_init,
+            ],
+            cache_spans=False,
+        ),
+    ],
+)
 
 resend.api_key = SECRETS.get("RESEND")

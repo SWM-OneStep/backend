@@ -18,5 +18,4 @@ DATABASES = {
     }
 }
 
-set_sentry_init_setting("Production")
 
