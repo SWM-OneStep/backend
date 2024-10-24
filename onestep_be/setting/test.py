@@ -1,4 +1,4 @@
-from onestep_be.settings import MIDDLEWARE, set_sentry_init_setting
+from onestep_be.settings import *
 
 SKIP_AUTHENTICATION = True
 

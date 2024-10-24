@@ -1,5 +1,5 @@
 from accounts.aws import get_secret
-from onestep_be.settings import set_sentry_init_setting
+from onestep_be.settings import *
 
 SECRETS = eval(get_secret())
 
