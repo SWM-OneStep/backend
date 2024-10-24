@@ -195,8 +195,9 @@ openai_client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=httpx.AsyncClient(
         limits=httpx.Limits(
-            max_connections=1000, max_keepalive_connections=100
+            max_connections=100, max_keepalive_connections=100
         ),
+        timeout=httpx.Timeout(timeout=600.0, connect=5.0),
     ),
 )
 

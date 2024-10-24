@@ -8,7 +8,7 @@ import sentry_sdk
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -752,7 +752,7 @@ class InboxView(APIView):
 
 
 class RecommendSubTodo(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
@@ -842,11 +842,11 @@ class RecommendSubTodo(APIView):
                 },
                 {
                     "role": "user",
-                    "content": f"id: {todo["id"]}, \
-                        content: {todo["content"]}, \
-                        date: {todo["date"]}, \
-                        due_time: {todo["due_time"]}, \
-                        category_id: {todo["category_id"]}",
+                    "content": f"id: {todo['id']}, "
+                    f"content: {todo['content']}, "
+                    f"date: {todo['date']}, "
+                    f"due_time: {todo['due_time']}, "
+                    f"category_id: {todo['category_id']}",
                 },
             ],
             response_format={"type": "json_object"},
