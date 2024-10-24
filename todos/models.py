@@ -128,6 +128,7 @@ class Todo(TimeStamp, RankedModel):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
     rank = RankField(insert_to_bottom=True)
+    order_with_respect_to = "user_id"
 
     objects = TodosManager()
 
@@ -145,6 +146,7 @@ class SubTodo(TimeStamp, RankedModel):
     date = models.DateField(null=True)
     is_completed = models.BooleanField(default=False)
     rank = RankField(insert_to_bottom=True)
+    order_with_respect_to = "todo_id"
 
     objects = TodosManager()
 
@@ -160,6 +162,7 @@ class Category(TimeStamp, RankedModel):
     )
     title = models.CharField(max_length=100, null=True)
     rank = RankField(insert_to_bottom=True)
+    order_with_respect_to = "user_id"
 
     objects = TodosManager()
 
