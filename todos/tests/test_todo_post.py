@@ -23,7 +23,6 @@ def test_create_todo_success(
 ):
     url = reverse("todos")
     data = {
-        "user_id": create_user.id,
         "date": date,
         "due_time": None,
         "content": content,
@@ -32,6 +31,7 @@ def test_create_todo_success(
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 201
     assert "id" in response.data
+    assert response.data.rank == "mzzzz"
 
 
 @pytest.mark.django_db

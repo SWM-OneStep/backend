@@ -45,6 +45,7 @@ class GoogleLogin(APIView):
                         "refresh": str(refresh),
                         "access": str(refresh.access_token),
                         "is_new": is_new,
+                        "email": email,
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -109,6 +110,7 @@ class AppleLogin(APIView):
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
                     "is_new": is_new,
+                    "email": email,
                 },
                 status=status.HTTP_200_OK,
             )
