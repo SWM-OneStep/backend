@@ -1,6 +1,7 @@
 import jwt
 import requests
 import sentry_sdk
+import urllib3
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from fcm_django.models import FCMDevice
@@ -115,6 +116,7 @@ class AppleLogin(BaseLogin):
             raise LoginException(f"An unexpected error occurred: {e}")
 
     def get_apple_public_key(self, kid):
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         response = requests.get(self.APPLE_PUBLIC_KEYS_URL, verify=False)
         keys = response.json().get("keys", [])
         for key in keys:
