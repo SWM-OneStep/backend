@@ -89,6 +89,8 @@ class AppleLogin(BaseLogin):
     APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
 
     def verify_token(self, device_type, identity_token):
+        if device_type != DEVICE_TYPE_IOS:
+            raise LoginException("Invalid device type")
         try:
             unverified_header = jwt.get_unverified_header(identity_token)
             kid = unverified_header["kid"]
