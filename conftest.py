@@ -17,7 +17,11 @@ fake = Faker()
 
 @pytest.fixture(scope="module")
 def invalid_token():
-    response = {"token": "token", "deviceToken": "device_token"}
+    response = {
+        "token": "token",
+        "deviceToken": "device_token",
+        "type": 0,
+    }
     return response
 
 

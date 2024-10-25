@@ -71,18 +71,26 @@ class BaseLogin(APIView):
 
 class GoogleLogin(BaseLogin):
     def verify_token(self, device_type, token):
-        if device_type == DEVICE_TYPE_ANDROID:  # Android
-            return id_token.verify_oauth2_token(
-                token,
-                google_requests.Request(),
-                audience=GOOGLE_ANDROID_CLIENT_ID,
-            )
-        elif device_type == DEVICE_TYPE_IOS:  # iOS
-            return id_token.verify_oauth2_token(
-                token, google_requests.Request(), audience=GOOGLE_IOS_CLIENT_ID
-            )
+        audience = self.get_audience(device_type)
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            audience=audience,
+        )
+        self.validate_issuer(idinfo)
+        return idinfo["email"]
+
+    def get_audience(self, device_type):
+        if device_type == DEVICE_TYPE_ANDROID:
+            return GOOGLE_ANDROID_CLIENT_ID
+        elif device_type == DEVICE_TYPE_IOS:
+            return GOOGLE_IOS_CLIENT_ID
         else:
             raise LoginException("Invalid device type")
+
+    def validate_issuer(self, idinfo):
+        if "accounts.google.com" not in idinfo["iss"]:
+            raise LoginException("Invalid token")
 
 
 class AppleLogin(BaseLogin):
