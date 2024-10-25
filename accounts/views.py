@@ -94,7 +94,7 @@ class AppleLogin(APIView):
     request : token, device_token, type(0 : android, 1 : ios)
     """
 
-    APPLE_SERVICE_ID = settings.SECRETS.get("APPLE_APP_ID")
+    APPLE_APP_ID = settings.SECRETS.get("APPLE_APP_ID")
     APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
 
     authentication_classes = []
@@ -141,7 +141,7 @@ class AppleLogin(APIView):
                 identity_token,
                 public_key,
                 algorithms=["RS256"],
-                audience=self.APPLE_SERVICE_ID,
+                audience=self.APPLE_APP_ID,
                 issuer="https://appleid.apple.com",
             )
             email = decoded_token.get("email", None)
