@@ -48,7 +48,11 @@ class User(AbstractUser, TimeStamp):
     def get_or_create_user(self, email):
         try:
             is_new = False
-            user = User.objects.get(username=email, deleted_at__isnull=True)
+            user = User.objects.get(username=email)
+            if user.deleted_at is not None:
+                user.deleted_at = None
+                user.save(update_fields=["deleted_at"])
+                is_new = True
         except User.DoesNotExist:
             user = User.objects.create(username=email, password="")
             send_welcome_email(
