@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from onestep_be.settings import openai_client
 from todos.firebase_messaging import send_push_notification_device
-from todos.models import Category, SubTodo, Todo, UserLastUsage
+from todos.models import Category, SubTodo, Todo
 from todos.serializers import (
     CategorySerializer,
     GetTodoSerializer,
@@ -774,17 +774,17 @@ class RecommendSubTodo(APIView):
         """
         set_sentry_user(request.user)
 
-        user_id = request.user.id
+        # user_id = request.user.id
         try:
-            flag, message = UserLastUsage.check_rate_limit(
-                user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
-            )
+            # flag, message = UserLastUsage.check_rate_limit(
+            #     user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
+            # )
 
-            if flag is False:
-                return Response(
-                    {"error": message},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                )
+            # if flag is False:
+            #     return Response(
+            #         {"error": message},
+            #         status=status.HTTP_429_TOO_MANY_REQUESTS,
+            #     )
             todo_id = request.GET.get("todo_id")
             if todo_id is None:
                 sentry_sdk.capture_message(
@@ -833,9 +833,8 @@ class RecommendSubTodo(APIView):
                         이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
                         Output a JSON object structured like:
                         {id, content, date, due_time, category_id, children : [
-                        {content, date, todo(parent todo id)}, ...}]}
+                        {content, todo(parent todo id)}, ...}]}
                         [조건]
-                        - date 는 부모의 date를 따를 것
                         - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
                         - 언어는 주어진 todo content의 언어에 따를 것
                         """,  # noqa: E501

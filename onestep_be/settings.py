@@ -195,9 +195,9 @@ openai_client = AsyncOpenAI(
     http_client=httpx.AsyncClient(
         limits=httpx.Limits(
             max_connections=1000, max_keepalive_connections=100
-        ),
+        )
     ),
-    timeout=httpx.Timeout(timeout=8.0, connect=5.0),
+    timeout=httpx.Timeout(120),
 )
 
 # Password validation
