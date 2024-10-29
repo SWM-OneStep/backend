@@ -5,11 +5,20 @@ from .models import Device, PatchNote, User
 
 
 class UserAdmin(admin.ModelAdmin):
-    readonly_fields = ["id", "social_provider", "username"]
+    readonly_fields = [
+        "id",
+        "social_provider",
+        "username",
+        "created_at",
+        "updated_at",
+    ]
     list_display = [
         "id",
         "username",
         "social_provider",
+        "created_at",
+        "deleted_at",
+        "updated_at",
         "is_active",
         "is_staff",
         "is_superuser",
@@ -22,6 +31,9 @@ class UserAdmin(admin.ModelAdmin):
                     "id",
                     "username",
                     "social_provider",
+                    "created_at",
+                    "deleted_at",
+                    "updated_at",
                     "is_active",
                     "is_staff",
                     "is_superuser",
