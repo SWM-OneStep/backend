@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from onestep_be.settings import openai_client
 from todos.firebase_messaging import send_push_notification_device
-from todos.models import Category, SubTodo, Todo
+from todos.models import Category, SubTodo, Todo, UserLastUsage
 from todos.serializers import (
     CategorySerializer,
     GetTodoSerializer,
@@ -774,17 +774,17 @@ class RecommendSubTodo(APIView):
         """
         set_sentry_user(request.user)
 
-        # user_id = request.user.id
+        user_id = request.user.id
         try:
-            #     flag, message = UserLastUsage.check_rate_limit(
-            #         user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
-            #     )
+            flag, message = UserLastUsage.check_rate_limit(
+                user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
+            )
 
-            # if flag is False:
-            #     return Response(
-            #         {"error": message},
-            #         status=status.HTTP_429_TOO_MANY_REQUESTS,
-            #     )
+            if flag is False:
+                return Response(
+                    {"error": message},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
             todo_id = request.GET.get("todo_id")
             if todo_id is None:
                 sentry_sdk.capture_message(

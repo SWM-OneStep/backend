@@ -115,3 +115,4 @@ py-cpuinfo==9.0.0
 pytest-benchmark==4.0.0 
 pytest_asyncio==0.24.0
 debugpy==1.8.7
+time-machine==2.16.0
