@@ -148,7 +148,7 @@ class TodoSerializer(serializers.ModelSerializer):
 
         if request.method == "PATCH":
             if not any(
-                data.get(field)
+                data.get(field) is not None
                 for field in [
                     "content",
                     "category_id",
