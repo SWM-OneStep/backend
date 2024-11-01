@@ -16,7 +16,7 @@ jobs:
       - name: Update version.txt
         run: |
           VERSION=$(TZ=Asia/Seoul date +'%Y.%m.%d.%H.%M.%S')  # 한국 시간대 사용
-          echo "onestep_prod@${VERSION}" > version.txt
+          echo "onestep_prod@${VERSION}" > backend/version.txt
 
       - name: Set Dockerfile Path
         id: dockerfile-path
