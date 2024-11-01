@@ -21,6 +21,7 @@ import pymysql
 import resend
 import sentry_sdk
 from openai import AsyncOpenAI
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
@@ -269,7 +270,7 @@ def setnry_filter_transactions(event, hint):
     url_string = event["request"]["url"]
     parsed_url = urlparse(url_string)
 
-    if parsed_url.path == "/auth/android" or parsed_url.path == "/swagger":
+    if parsed_url.path == "/auth/android/" or parsed_url.path == "/swagger/":
         return None
     return event
 
@@ -279,7 +280,8 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     release=PROJECT_VERSION,
     profiles_sample_rate=1.0,
-    environment=SENTRY_ENVIRONMENT,
+    # environment=SENTRY_ENVIRONMENT,
+    environment="Testing",
     integrations=[
         DjangoIntegration(
             transaction_style="url",
@@ -291,6 +293,7 @@ sentry_sdk.init(
             ],
             cache_spans=False,
         ),
+        AsyncioIntegration(),
     ],
     before_send_transaction=setnry_filter_transactions,
 )
