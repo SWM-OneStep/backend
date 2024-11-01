@@ -1,17 +1,20 @@
 # todos/views.py
+
+
+import asyncio
 import json
 
 import sentry_sdk
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from onestep_be.settings import client
+from onestep_be.settings import openai_client
 from todos.firebase_messaging import send_push_notification_device
-from todos.models import Category, SubTodo, Todo, UserLastUsage
+from todos.models import Category, SubTodo, Todo
 from todos.serializers import (
     CategorySerializer,
     GetTodoSerializer,
@@ -51,7 +54,7 @@ class TodoView(APIView):
     def post(self, request):
         """
         - 이 함수는 todo를 생성하는 함수입니다.
-        - 입력 : start_date, end_date, content, category, parent_id
+        - 입력 : date, due_time, content, category, parent_id
         - content 는 암호화 되어야 합니다.
         - category_id 는 category에 존재해야합니다.
         - content는 1자 이상 50자 이하여야합니다.
@@ -71,7 +74,6 @@ class TodoView(APIView):
             )
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
@@ -166,7 +168,7 @@ class TodoView(APIView):
         """
         - 이 함수는 todo를 수정하는 함수입니다.
         - 입력 : todo_id, 수정 내용
-        - 수정 내용은 content, category, start_date, end_date 중 하나 이상이어야 합니다.
+        - 수정 내용은 content, category, date, due_time 중 하나 이상이어야 합니다.
         - rank 의 경우 아래와 같이 제시된다.
             "rank" : {
                 "prev_id" : 1,
@@ -284,7 +286,6 @@ class SubTodoView(APIView):
         - 입력 : todo, date, content
         - subtodo 는 리스트에 여러 객체가 들어간 형태를 가집니다.
         - content 는 암호화 되어야 합니다(// 미정)
-        - date 는 parent의 start_date와 end_date의 사이여야 합니다.
         """
         set_sentry_user(request.user)
         data = request.data
@@ -751,7 +752,7 @@ class InboxView(APIView):
 
 
 class RecommendSubTodo(APIView):
-    permission_classes = [AllowAny]
+    # permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
@@ -767,74 +768,46 @@ class RecommendSubTodo(APIView):
         operation_summary="Recommend subtodo",
         responses={200: SubTodoSerializer},
     )
-    async def get(self, request):
+    def get(self, request):
         """
         - 이 함수는 sub todo를 추천하는 함수입니다.
-        - 입력 : todo_id, recommend_category
-        - todo_id에 해당하는 todo_id 의 Contents 를 바탕으로 sub todo를 추천합니다.
-        - 커스텀의 경우 사용자의 이전 기록들을 바탕으로 추천합니다.
-        - 추천할 때의 subtodo 는 약 1시간의 작업으로 openAI 의 api를 통해 추천합니다.
-        """  # noqa: E501
-
+        """
         set_sentry_user(request.user)
 
-        user_id = request.user.id
-        flag, message = UserLastUsage.check_rate_limit(
-            user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
-        )
-        if flag is False:
-            return Response(
-                {"error": message}, status=status.HTTP_429_TOO_MANY_REQUESTS
-            )
-        todo_id = request.GET.get("todo_id")
-        if todo_id is None:
-            sentry_sdk.capture_message("Todo_id not provided", level="error")
-            return Response(
-                {"error": "todo_id must be provided"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # user_id = request.user.id
         try:
+            #     flag, message = UserLastUsage.check_rate_limit(
+            #         user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
+            #     )
+
+            # if flag is False:
+            #     return Response(
+            #         {"error": message},
+            #         status=status.HTTP_429_TOO_MANY_REQUESTS,
+            #     )
+            todo_id = request.GET.get("todo_id")
+            if todo_id is None:
+                sentry_sdk.capture_message(
+                    "Todo_id not provided", level="error"
+                )
+                return Response(
+                    {"error": "todo_id must be provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # 비동기적으로 OpenAI API 호출 처리
             todo = Todo.objects.get_with_id(id=todo_id)
-            completion = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """너는 퍼스널 매니저야. 
-                    너가 하는 일은 이 사람이 할 이야기를 듣고 약 1시간 정도면 끝낼 수 있도록 작업을 나눠주는 식으로 진행할 거야.
-                    아래는 너가 나눠줄 작업 형식이야.
-                    { id : 1, content: "3학년 2학기 운영체제 중간고사 준비", start_date="2024-09-01", end_date="2024-09-24"}
-                    이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
-                    Output a JSON object structured like:
-                    {id, content, start_date, end_date, category_id, order, is_completed, children : [
-                    {content, date, todo(parent todo id)}, ... ,{content, date, todo(parent todo id)}]}
-                    [조건] 
-                    - date 는 부모의 start_date를 따를 것
-                    - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
-                    - 언어는 주어진 todo content의 언어에 따를 것
-                    """,  # noqa: E501
-                    },
-                    {
-                        "role": "user",
-                        "content": f"id: {todo.id}, \
-                            content: {todo.content}, \
-                            start_date: {todo.start_date}, \
-                            end_date: {todo.end_date}, \
-                            category_id: {todo.category_id}, \
-                            order: {todo.order}, \
-                            is_completed: {todo.is_completed}",
-                    },
-                ],
-                response_format={"type": "json_object"},
-            )
-            sentry_sdk.capture_message(
-                "SubTodo recommended", level="info", extra={"todo_id": todo.id}
-            )
+            todo_data = {
+                "id": todo.id,
+                "content": todo.content,
+                "date": todo.date,
+                "due_time": todo.due_time,
+                "category_id": todo.category_id,
+            }
+            completion = asyncio.run(self.get_openai_completion(todo_data))
             return Response(
                 json.loads(completion.choices[0].message.content),
                 status=status.HTTP_200_OK,
             )
-
         except Todo.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
             return Response(
@@ -845,3 +818,36 @@ class RecommendSubTodo(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
+
+    # 비동기적으로 OpenAI API를 호출하는 함수
+    async def get_openai_completion(self, todo):
+        return await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """너는 퍼스널 매니저야.
+                        너가 하는 일은 이 사람이 할 이야기를 듣고 작업을 나눠줘야 해.
+                        아래는 너가 나눠줄 작업 형식이야.
+                        { id : 1, content: "운영체제 중간고사 준비", date="2024-09-01", due_time=None}
+                        이런  형식으로 작성된 작업을 받았을 때 너는 이 작업을 어떻게 나눠줄 것인지를 알려주면 돼.
+                        Output a JSON object structured like:
+                        {id, content, date, due_time, category_id, children : [
+                        {content, date, todo(parent todo id)}, ...}]}
+                        [조건]
+                        - date 는 부모의 date를 따를 것
+                        - 작업은 한 서브투두를 해결하는데 1시간 정도로 이루어지도록 제시할 것
+                        - 언어는 주어진 todo content의 언어에 따를 것
+                        """,  # noqa: E501
+                },
+                {
+                    "role": "user",
+                    "content": f"id: {todo['id']}, "
+                    f"content: {todo['content']}, "
+                    f"date: {todo['date']}, "
+                    f"due_time: {todo['due_time']}, "
+                    f"category_id: {todo['category_id']}",
+                },
+            ],
+            response_format={"type": "json_object"},
+        )

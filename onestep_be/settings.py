@@ -13,12 +13,15 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import django.db.models.signals
+import httpx
 import pymysql
 import resend
 import sentry_sdk
-from openai import OpenAI
+from openai import AsyncOpenAI
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
@@ -189,7 +192,15 @@ DATABASES = {
 
 # Add OpenAI API Key
 OPENAI_API_KEY = SECRETS.get("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY,
+    http_client=httpx.AsyncClient(
+        limits=httpx.Limits(
+            max_connections=1000, max_keepalive_connections=100
+        ),
+    ),
+    timeout=httpx.Timeout(timeout=8.0, connect=5.0),
+)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -244,32 +255,47 @@ try:
         PROJECT_VERSION = file.read().strip()
         if PROJECT_VERSION == "":
             PROJECT_VERSION = "Unknown"
+            SENTRY_ENVIRONMENT = "localhost"
+        else:
+            SENTRY_ENVIRONMENT = PROJECT_VERSION.split("@")[0]
 except FileNotFoundError:
     PROJECT_VERSION = "Unknown"  # 파일이 없을 경우 기본값
 
 # sentry settings
+SENTRY_DSN = SECRETS.get("SENTRY_DSN")
 
 
-def set_sentry_init_setting(SENTRY_ENVIRONMENT):
-    sentry_sdk.init(
-        dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
-        traces_sample_rate=0.1,
-        release=PROJECT_VERSION,
-        profiles_sample_rate=0.1,
-        environment=SENTRY_ENVIRONMENT,
-        integrations=[
-            DjangoIntegration(
-                transaction_style="url",
-                middleware_spans=True,
-                signals_spans=True,
-                signals_denylist=[
-                    django.db.models.signals.pre_init,
-                    django.db.models.signals.post_init,
-                ],
-                cache_spans=False,
-            ),
-        ],
-    )
+# sentry Filtering
+def setnry_filter_transactions(event, hint):
+    url_string = event["request"]["url"]
+    parsed_url = urlparse(url_string)
 
+    if parsed_url.path == "/auth/android/" or parsed_url.path == "/swagger/":
+        return None
+    return event
+
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    traces_sample_rate=1.0,
+    release=PROJECT_VERSION,
+    profiles_sample_rate=1.0,
+    # environment=SENTRY_ENVIRONMENT,
+    environment="Testing",
+    integrations=[
+        DjangoIntegration(
+            transaction_style="url",
+            middleware_spans=True,
+            signals_spans=True,
+            signals_denylist=[
+                django.db.models.signals.pre_init,
+                django.db.models.signals.post_init,
+            ],
+            cache_spans=False,
+        ),
+        AsyncioIntegration(),
+    ],
+    before_send_transaction=setnry_filter_transactions,
+)
 
 resend.api_key = SECRETS.get("RESEND")

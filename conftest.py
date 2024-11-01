@@ -17,7 +17,11 @@ fake = Faker()
 
 @pytest.fixture(scope="module")
 def invalid_token():
-    response = {"token": "token", "deviceToken": "device_token"}
+    response = {
+        "token": "token",
+        "deviceToken": "device_token",
+        "type": 0,
+    }
     return response
 
 
@@ -145,8 +149,8 @@ def recommend_result():
         Mock(
             message=Mock(
                 content=(
-                    '{"id": 1, "content": "subtask", "start_date": "2024-09-01", '  # noqa
-                    '"end_date": "2024-09-24", "category_id": 1 '
+                    '{"id": 1, "content": "study algebra", "date": "2024-09-01", '  # noqa: E501
+                    '"due_time": "None", "category_id": 1, '
                     '"is_completed": false, "children": []}'
                 )
             )

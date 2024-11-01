@@ -1,25 +1,35 @@
+# import asyncio
 import time
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from django.urls import reverse
 from rest_framework import status
 
 
-@patch("todos.views.client.chat.completions.create")
+@pytest.mark.django_db
+@pytest.mark.asyncio
+@patch(
+    "todos.views.openai_client.chat.completions.create", new_callable=AsyncMock
+)
 def test_rate_limit_exceeded(
     mock_llm, authenticated_client, create_todo, recommend_result
 ):
     mock_llm.return_value = recommend_result
     url = reverse("recommend")
+
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-    assert response.data["error"] == "Rate limit exceeded"
+    assert response.json()["error"] == "Rate limit exceeded"
 
 
-@patch("todos.views.client.chat.completions.create")
+@pytest.mark.django_db
+@patch(
+    "todos.views.openai_client.chat.completions.create", new_callable=AsyncMock
+)
 def test_rate_limit_passed(
     mock_llm, authenticated_client, create_todo, recommend_result
 ):
@@ -35,7 +45,10 @@ def test_rate_limit_passed(
     assert response.status_code == status.HTTP_200_OK
 
 
-@patch("todos.views.client.chat.completions.create")
+@pytest.mark.django_db
+@patch(
+    "todos.views.openai_client.chat.completions.create", new_callable=AsyncMock
+)
 def test_rate_limit_premium(
     mock_llm, authenticated_client, create_user, create_todo, recommend_result
 ):
@@ -47,6 +60,18 @@ def test_rate_limit_premium(
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
+
+    response = authenticated_client.get(url, {"todo_id": create_todo.id})
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+def test_openAI_five_times(authenticated_client, create_todo):
+    url = reverse("recommend")
+
+    for _ in range(5):
+        response = authenticated_client.get(url, {"todo_id": create_todo.id})
+        assert response.status_code == status.HTTP_200_OK
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK

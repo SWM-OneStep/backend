@@ -1,9 +1,11 @@
 import jwt
+import requests
 import sentry_sdk
+import urllib3
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from fcm_django.models import FCMDevice
-from google.auth.transport import requests
+from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -24,83 +26,13 @@ DEVICE_TYPE_ANDROID = 0
 DEVICE_TYPE_IOS = 1
 
 
-class GoogleLogin(APIView):
-    """
-    request : token, device_token, type(0 : android, 1 : ios)
-    """
-
+class BaseLogin(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
         try:
             device_type, token, device_token = self.validate_request(request)
-            idinfo = self.verify_token(device_type, token)
-            if "accounts.google.com" in idinfo["iss"]:
-                email = idinfo["email"]
-                user, is_new = User.get_or_create_user(email)
-                refresh = self.handle_device_token(user, device_token)
-                return Response(
-                    {
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token),
-                        "is_new": is_new,
-                    },
-                    status=status.HTTP_200_OK,
-                )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            return Response(
-                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-    def validate_request(self, request):
-        device_type = request.data.get("type", None)
-        token = request.data.get("token")
-        device_token = request.data.get("device_token", None)
-        if not token or device_type is None:
-            raise LoginException()
-        return device_type, token, device_token
-
-    def verify_token(self, device_type, token):
-        if device_type == DEVICE_TYPE_ANDROID:  # Android
-            return id_token.verify_oauth2_token(
-                token,
-                requests.Request(),
-                audience=GOOGLE_ANDROID_CLIENT_ID,
-            )
-        elif device_type == DEVICE_TYPE_IOS:  # iOS
-            return id_token.verify_oauth2_token(
-                token, requests.Request(), audience=GOOGLE_IOS_CLIENT_ID
-            )
-        else:
-            raise LoginException("Invalid device type")
-
-    def handle_device_token(self, user, device_token):
-        if device_token:
-            FCMDevice.objects.get_or_create(
-                user=user, registration_id=device_token
-            )
-            return CustomRefreshToken.for_user(user, device_token)
-        else:
-            return CustomRefreshToken.for_user_without_device(user)
-
-
-class AppleLogin(APIView):
-    """
-    request : token, device_token, type(0 : android, 1 : ios)
-    """
-
-    APPLE_SERVICE_ID = settings.SECRETS.get("APPLE_SERVICE_ID")
-    APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
-
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        try:
-            device_type, token, device_token = self.validate_request(request)
-            # verify apple token and get email
             email = self.verify_token(device_type, token)
             user, is_new = User.get_or_create_user(email)
             refresh = self.handle_device_token(user, device_token)
@@ -109,6 +41,7 @@ class AppleLogin(APIView):
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
                     "is_new": is_new,
+                    "email": email,
                 },
                 status=status.HTTP_200_OK,
             )
@@ -118,49 +51,6 @@ class AppleLogin(APIView):
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
-    def verify_token(self, token):
-        """
-        Finish the auth process once the access_token was retrieved
-        Get the email from ID token received from apple
-        """
-        # Apple 공개 키 가져오기
-        response = requests.get(AppleLogin.APPLE_PUBLIC_KEYS_URL)
-        if response.status_code != 200:
-            raise LoginException("Unable to fetch Apple's public keys")
-        apple_public_keys = response.json()["keys"]
-        # JWT 디코드 및 서명 검증
-        header = jwt.get_unverified_header(token)
-
-        # 헤더의 'kid'와 일치하는 Apple 공개 키 선택
-        public_key = next(
-            key
-            for key in apple_public_keys["keys"]
-            if key["kid"] == header["kid"]
-        )
-
-        if public_key is None:
-            raise LoginException("Invalid token")
-
-        # Verify the token
-        try:
-            decoded_token = jwt.decode(
-                id_token,
-                public_key,
-                algorithms=["RS256"],  # Apple의 서명 알고리즘
-                audience=AppleLogin.APPLE_SERVICE_ID,
-                issuer="https://appleid.apple.com",
-            )
-            return decoded_token.get("email")
-        except jwt.ExpiredSignatureError:
-            sentry_sdk.capture_exception(jwt.ExpiredSignatureError)
-            raise LoginException("Token has expired")
-        except jwt.InvalidTokenError:
-            sentry_sdk.capture_exception(jwt.ExpiredSignatureError)
-            raise LoginException("Invalid token")
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            raise LoginException("An unexpected error occurred")
-
     def validate_request(self, request):
         device_type = request.data.get("type", None)
         token = request.data.get("token")
@@ -177,6 +67,70 @@ class AppleLogin(APIView):
             return CustomRefreshToken.for_user(user, device_token)
         else:
             return CustomRefreshToken.for_user_without_device(user)
+
+
+class GoogleLogin(BaseLogin):
+    def verify_token(self, device_type, token):
+        audience = self.get_audience(device_type)
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            audience=audience,
+        )
+        self.validate_issuer(idinfo)
+        return idinfo["email"]
+
+    def get_audience(self, device_type):
+        if device_type == DEVICE_TYPE_ANDROID:
+            return GOOGLE_ANDROID_CLIENT_ID
+        elif device_type == DEVICE_TYPE_IOS:
+            return GOOGLE_IOS_CLIENT_ID
+        else:
+            raise LoginException("Invalid device type")
+
+    def validate_issuer(self, idinfo):
+        if "accounts.google.com" not in idinfo["iss"]:
+            raise LoginException("Invalid token")
+
+
+class AppleLogin(BaseLogin):
+    APPLE_APP_ID = settings.SECRETS.get("APPLE_APP_ID")
+    APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
+
+    def verify_token(self, device_type, identity_token):
+        if device_type != DEVICE_TYPE_IOS:
+            raise LoginException("Invalid device type")
+        try:
+            unverified_header = jwt.get_unverified_header(identity_token)
+            kid = unverified_header["kid"]
+            public_key = self.get_apple_public_key(kid)
+            decoded_token = jwt.decode(
+                identity_token,
+                public_key,
+                algorithms=["RS256"],
+                audience=self.APPLE_APP_ID,
+                issuer="https://appleid.apple.com",
+            )
+            email = decoded_token.get("email", None)
+            return email
+        except jwt.ExpiredSignatureError as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException("Token has expired")
+        except jwt.InvalidTokenError as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException("Invalid token")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException(f"An unexpected error occurred: {e}")
+
+    def get_apple_public_key(self, kid):
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(self.APPLE_PUBLIC_KEYS_URL, verify=False)
+        keys = response.json().get("keys", [])
+        for key in keys:
+            if key["kid"] == kid:
+                return jwt.algorithms.RSAAlgorithm.from_jwk(key)
+        raise ValueError("Matching key not found")
 
 
 class UserRetrieveView(APIView):
