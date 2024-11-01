@@ -29,8 +29,7 @@ class CategorySerializer(serializers.ModelSerializer):
         request = self.context["request"]
         if request.method == "PATCH":
             if not any(
-                data.get(field) is not None
-                for field in ["color", "title", "rank"]
+                data.get(field) for field in ["color", "title", "rank"]
             ):
                 raise serializers.ValidationError(
                     "At least one of color, title, rank must be provided"
