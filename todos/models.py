@@ -3,10 +3,9 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
-from django_lexorank.fields import RankField
-from django_lexorank.models import RankedModel
 
 from accounts.models import User
+from Lexorank.src.lexo_rank import LexoRank
 
 
 class TodosManager(models.Manager):
@@ -21,17 +20,41 @@ class TodosManager(models.Manager):
             instance.save()
         return instances
 
-    def update_rank(self, instance, prev_id, next_id):
+    def get_next_rank_subtodo(self, user_id):
+        get_list = (
+            SubTodo.objects.filter(todo_id__user_id=user_id)
+            .select_related("todo_id")
+            .last()
+        )
+        if get_list is None:
+            return str(LexoRank.middle())
+        return str(LexoRank.gen_next(LexoRank.parse(get_list.rank)))
+
+    def get_next_rank(self, user_id):
+        get_list = (
+            self.get_queryset().filter(user_id=user_id).order_by("rank").last()
+        )
+        if get_list is None:
+            return str(LexoRank.middle())
+        return str(LexoRank.gen_next(LexoRank.parse(get_list.rank)))
+
+    def get_update_rank(self, instance, prev_id, next_id):
         if prev_id is None and next_id is None:
-            return instance
+            return instance.rank
         elif prev_id is None:  # Move to the top
-            instance.place_on_top()
+            get_next_rank = self.get_queryset().get(id=next_id).rank
+            get_rank = str(LexoRank.parse(get_next_rank).gen_prev())
+            return get_rank
         elif next_id is None:  # Move to the bottom
-            instance.place_on_bottom()
+            get_prev_rank = self.get_queryset().get(id=prev_id).rank
+            get_rank = str(LexoRank.parse(get_prev_rank).gen_next())
+            return get_rank
         else:  # Move to after prev_id
-            prev_instance = self.get_queryset().get(id=prev_id)
-            instance.place_after(prev_instance)
-        return instance
+            prev_rank = self.get_queryset().get(id=prev_id).rank
+            prev_lexo = LexoRank.parse(prev_rank)
+            next_rank = self.get_queryset().get(id=next_id).rank
+            next_instance = LexoRank.parse(next_rank)
+            return str(prev_lexo.between(next_instance))
 
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
@@ -119,7 +142,7 @@ class TimeStamp(models.Model):
         abstract = True
 
 
-class Todo(TimeStamp, RankedModel):
+class Todo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
     category_id = models.ForeignKey("Category", on_delete=models.CASCADE)
@@ -127,7 +150,7 @@ class Todo(TimeStamp, RankedModel):
     date = models.DateField(null=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
-    rank = RankField(insert_to_bottom=True)
+    rank = models.CharField(max_length=255)
 
     objects = TodosManager()
 
@@ -135,7 +158,7 @@ class Todo(TimeStamp, RankedModel):
         return self.content
 
 
-class SubTodo(TimeStamp, RankedModel):
+class SubTodo(TimeStamp):
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=255)
     todo_id = models.ForeignKey(
@@ -144,7 +167,7 @@ class SubTodo(TimeStamp, RankedModel):
     due_time = models.TimeField(null=True, blank=True)
     date = models.DateField(null=True)
     is_completed = models.BooleanField(default=False)
-    rank = RankField(insert_to_bottom=True)
+    rank = models.CharField(max_length=255)
 
     objects = TodosManager()
 
@@ -152,14 +175,14 @@ class SubTodo(TimeStamp, RankedModel):
         return self.content
 
 
-class Category(TimeStamp, RankedModel):
+class Category(TimeStamp):
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     color = models.SmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(8)]
     )
     title = models.CharField(max_length=100, null=True)
-    rank = RankField(insert_to_bottom=True)
+    rank = models.CharField(max_length=255)
 
     objects = TodosManager()
 

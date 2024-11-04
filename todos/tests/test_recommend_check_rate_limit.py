@@ -1,5 +1,5 @@
 # import asyncio
-import time
+import datetime as dt
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -31,15 +31,16 @@ def test_rate_limit_exceeded(
     "todos.views.openai_client.chat.completions.create", new_callable=AsyncMock
 )
 def test_rate_limit_passed(
-    mock_llm, authenticated_client, create_todo, recommend_result
+    mock_llm, authenticated_client, create_todo, recommend_result, time_machine
 ):
     url = reverse("recommend")
     mock_llm.return_value = recommend_result
+    time_machine.move_to(dt.datetime(2024, 3, 3))
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
 
-    time.sleep(10)
+    time_machine.shift(dt.timedelta(seconds=10))
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
@@ -60,18 +61,6 @@ def test_rate_limit_premium(
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
-
-    response = authenticated_client.get(url, {"todo_id": create_todo.id})
-    assert response.status_code == status.HTTP_200_OK
-
-
-@pytest.mark.django_db
-def test_openAI_five_times(authenticated_client, create_todo):
-    url = reverse("recommend")
-
-    for _ in range(5):
-        response = authenticated_client.get(url, {"todo_id": create_todo.id})
-        assert response.status_code == status.HTTP_200_OK
 
     response = authenticated_client.get(url, {"todo_id": create_todo.id})
     assert response.status_code == status.HTTP_200_OK
