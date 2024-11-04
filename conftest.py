@@ -108,13 +108,9 @@ def content():
 
 
 @pytest.fixture
-def order():
-    orders = ["0|azzzzz:", "0|hzzzzz:", "0|lzzzzz:"]
-
-    def get_order(index):
-        return orders[index]
-
-    return get_order
+def rank():
+    orders = ["0|Vzzzzz:", "0|4n210Vz:", "0|35RYXWjz:"]
+    return orders
 
 
 @pytest.fixture

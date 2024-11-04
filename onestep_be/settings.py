@@ -15,11 +15,10 @@ from datetime import timedelta
 from pathlib import Path
 
 import django.db.models.signals
-import httpx
 import pymysql
 import resend
 import sentry_sdk
-from openai import AsyncOpenAI
+from openai import OpenAI
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
@@ -190,15 +189,7 @@ DATABASES = {
 
 # Add OpenAI API Key
 OPENAI_API_KEY = SECRETS.get("OPENAI_API_KEY")
-openai_client = AsyncOpenAI(
-    api_key=OPENAI_API_KEY,
-    http_client=httpx.AsyncClient(
-        limits=httpx.Limits(
-            max_connections=1000, max_keepalive_connections=100
-        )
-    ),
-    timeout=httpx.Timeout(120),
-)
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators

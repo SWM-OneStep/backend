@@ -1,7 +1,6 @@
 # todos/views.py
 
 
-import asyncio
 import json
 
 import sentry_sdk
@@ -14,7 +13,7 @@ from rest_framework.views import APIView
 
 from onestep_be.settings import openai_client
 from todos.firebase_messaging import send_push_notification_device
-from todos.models import Category, SubTodo, Todo
+from todos.models import Category, SubTodo, Todo, UserLastUsage
 from todos.serializers import (
     CategorySerializer,
     GetTodoSerializer,
@@ -67,13 +66,13 @@ class TodoView(APIView):
         try:
             data = request.data.copy()
             data["user_id"] = request.user.id
+            data["rank"] = Todo.objects.get_next_rank(request.user.id)
 
             set_sentry_user(request.user)
             serializer = TodoSerializer(
                 context={"request": request}, data=data
             )
             if serializer.is_valid(raise_exception=True):
-                serializer.save()
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
@@ -289,13 +288,12 @@ class SubTodoView(APIView):
         """
         set_sentry_user(request.user)
         data = request.data
+        data["rank"] = SubTodo.objects.get_next_rank(request.user.id)
         serializer = SubTodoSerializer(
             context={"request": request}, data=data, many=True
         )
 
         if serializer.is_valid(raise_exception=True):
-            serializer.save()
-
             send_push_notification_device(
                 request.auth.get("device"),
                 request.user,
@@ -402,7 +400,6 @@ class SubTodoView(APIView):
 
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-
             send_push_notification_device(
                 request.auth.get("device"),
                 request.user,
@@ -500,13 +497,13 @@ class CategoryView(APIView):
         try:
             data = request.data.copy()
             data["user_id"] = request.user.id
+            data["rank"] = Category.objects.get_next_rank(request.user.id)
 
             serializer = CategorySerializer(
                 context={"request": request}, data=data
             )
 
             if serializer.is_valid(raise_exception=True):
-                serializer.save()
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
@@ -588,7 +585,6 @@ class CategoryView(APIView):
         )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-
             send_push_notification_device(
                 request.auth.get("device"),
                 request.user,
@@ -774,17 +770,17 @@ class RecommendSubTodo(APIView):
         """
         set_sentry_user(request.user)
 
-        # user_id = request.user.id
+        user_id = request.user.id
         try:
-            # flag, message = UserLastUsage.check_rate_limit(
-            #     user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
-            # )
+            flag, message = UserLastUsage.check_rate_limit(
+                user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
+            )
 
-            # if flag is False:
-            #     return Response(
-            #         {"error": message},
-            #         status=status.HTTP_429_TOO_MANY_REQUESTS,
-            #     )
+            if flag is False:
+                return Response(
+                    {"error": message},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
             todo_id = request.GET.get("todo_id")
             if todo_id is None:
                 sentry_sdk.capture_message(
@@ -803,7 +799,7 @@ class RecommendSubTodo(APIView):
                 "due_time": todo.due_time,
                 "category_id": todo.category_id,
             }
-            completion = asyncio.run(self.get_openai_completion(todo_data))
+            completion = self.get_openai_completion(todo_data)
             return Response(
                 json.loads(completion.choices[0].message.content),
                 status=status.HTTP_200_OK,
@@ -820,8 +816,8 @@ class RecommendSubTodo(APIView):
             )
 
     # 비동기적으로 OpenAI API를 호출하는 함수
-    async def get_openai_completion(self, todo):
-        return await openai_client.chat.completions.create(
+    def get_openai_completion(self, todo):
+        return openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {

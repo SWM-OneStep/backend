@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
+from Lexorank.src.LexoRank import LexoRank
 from todos.models import Todo
 
 """
@@ -25,6 +26,7 @@ def test_update_todo_success(
     date,
     content,
     due_time,
+    rank,
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -32,6 +34,7 @@ def test_update_todo_success(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[0],
     )
     url = reverse("todos")
     data = {
@@ -48,7 +51,7 @@ def test_update_todo_success(
 
 @pytest.mark.django_db
 def test_update_todo_success_bottom_order(
-    create_user, create_category, authenticated_client, date, content
+    create_user, create_category, authenticated_client, date, content, rank
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -56,6 +59,7 @@ def test_update_todo_success_bottom_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[0],
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
@@ -63,6 +67,7 @@ def test_update_todo_success_bottom_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[1],
     )
     url = reverse("todos")
     data = {
@@ -79,7 +84,7 @@ def test_update_todo_success_bottom_order(
 
 @pytest.mark.django_db
 def test_update_todo_success_top_order(
-    create_user, create_category, authenticated_client, date, content
+    create_user, create_category, authenticated_client, date, content, rank
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -87,6 +92,7 @@ def test_update_todo_success_top_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[0],
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
@@ -94,6 +100,7 @@ def test_update_todo_success_top_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[1],
     )
     url = reverse("todos")
     data = {
@@ -105,12 +112,12 @@ def test_update_todo_success_top_order(
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 200
-    assert response.data["rank"] < todo.rank
+    assert LexoRank.parse(response.data["rank"]) < LexoRank.parse(todo.rank)
 
 
 @pytest.mark.django_db
 def test_update_todo_success_None_order(
-    create_user, create_category, authenticated_client, date, content
+    create_user, create_category, authenticated_client, date, content, rank
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -118,6 +125,7 @@ def test_update_todo_success_None_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[0],
     )
     before_rank = todo.rank
     url = reverse("todos")

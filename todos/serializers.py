@@ -77,9 +77,10 @@ class SubTodoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
             if attr == "patch_rank":
-                SubTodo.objects.update_rank(
+                rank = SubTodo.objects.get_update_rank(
                     instance, value.get("prev_id"), value.get("next_id")
                 )
+                setattr(instance, "rank", rank)
             else:
                 setattr(instance, attr, value)
         instance.updated_at = timezone.now()
@@ -169,9 +170,10 @@ class TodoSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             if attr == "patch_rank":
                 # If the rank field is provided, update the rank field
-                Todo.objects.update_rank(
+                rank = Todo.objects.get_update_rank(
                     instance, value.get("prev_id"), value.get("next_id")
                 )
+                setattr(instance, "rank", rank)
             else:
                 setattr(instance, attr, value)
 

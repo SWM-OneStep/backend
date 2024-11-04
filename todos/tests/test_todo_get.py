@@ -32,6 +32,7 @@ def test_get_todos(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank="0|Vzzzzz:",
     )
     Todo.objects.create(
         user_id=create_user,
@@ -39,6 +40,7 @@ def test_get_todos(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank="0|4n210Vz:",
     )
     response = authenticated_client.get(
         url, {"user_id": create_user.id}, format="json"
