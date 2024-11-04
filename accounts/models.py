@@ -49,6 +49,10 @@ class User(AbstractUser, TimeStamp):
         try:
             is_new = False
             user = User.objects.get(username=email)
+            if user.deleted_at is not None:
+                user.deleted_at = None
+                user.save(update_fields=["deleted_at"])
+                is_new = True
         except User.DoesNotExist:
             user = User.objects.create(username=email, password="")
             send_welcome_email(
@@ -58,9 +62,6 @@ class User(AbstractUser, TimeStamp):
             is_new = True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            sentry_sdk.capture_message(
-                "Failed to get or create user", level="error"
-            )
             raise e
 
         return user, is_new

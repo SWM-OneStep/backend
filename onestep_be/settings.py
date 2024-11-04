@@ -13,12 +13,14 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import django.db.models.signals
 import pymysql
 import resend
 import sentry_sdk
 from openai import OpenAI
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
@@ -253,12 +255,23 @@ except FileNotFoundError:
 SENTRY_DSN = SECRETS.get("SENTRY_DSN")
 
 
+# sentry Filtering
+def setnry_filter_transactions(event, hint):
+    url_string = event["request"]["url"]
+    parsed_url = urlparse(url_string)
+
+    if parsed_url.path == "/auth/android/" or parsed_url.path == "/swagger/":
+        return None
+    return event
+
+
 sentry_sdk.init(
     dsn=SENTRY_DSN,
     traces_sample_rate=1.0,
     release=PROJECT_VERSION,
     profiles_sample_rate=1.0,
-    environment=SENTRY_ENVIRONMENT,
+    # environment=SENTRY_ENVIRONMENT,
+    environment="Testing",
     integrations=[
         DjangoIntegration(
             transaction_style="url",
@@ -270,7 +283,9 @@ sentry_sdk.init(
             ],
             cache_spans=False,
         ),
+        AsyncioIntegration(),
     ],
+    before_send_transaction=setnry_filter_transactions,
 )
 
 resend.api_key = SECRETS.get("RESEND")
