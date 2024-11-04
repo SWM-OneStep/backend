@@ -14,19 +14,21 @@ from todos.models import SubTodo
 
 
 @pytest.mark.django_db
-def test_get_subtodos(create_todo, authenticated_client, content, date):
+def test_get_subtodos(create_todo, authenticated_client, content, date, rank):
     url = reverse("subtodos")
     SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     response = authenticated_client.get(
         url, {"todo_id": create_todo.id}, format="json"
@@ -37,7 +39,7 @@ def test_get_subtodos(create_todo, authenticated_client, content, date):
 
 @pytest.mark.django_db
 def test_get_subtodos_ordering(
-    create_todo, authenticated_client, content, date
+    create_todo, authenticated_client, content, date, rank
 ):
     url = reverse("subtodos")
     SubTodo.objects.create(
@@ -45,18 +47,21 @@ def test_get_subtodos_ordering(
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     SubTodo.objects.create(
         content="2",
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     SubTodo.objects.create(
         content="3",
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[2],
     )
     response = authenticated_client.get(
         url, {"todo_id": create_todo.id}, format="json"
@@ -69,7 +74,7 @@ def test_get_subtodos_ordering(
 
 @pytest.mark.django_db
 def test_get_subtodos_between_dates(
-    create_todo, authenticated_client, content
+    create_todo, authenticated_client, content, rank
 ):
     url = reverse("subtodos")
     SubTodo.objects.create(
@@ -77,18 +82,21 @@ def test_get_subtodos_between_dates(
         date="2024-08-02",
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     SubTodo.objects.create(
         content=content,
         date="2024-08-04",
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     SubTodo.objects.create(
         content=content,
         date="2024-08-06",
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[2],
     )
     response = authenticated_client.get(
         url,

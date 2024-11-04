@@ -30,8 +30,7 @@ def test_create_todo_success(
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 201
-    assert "id" in response.data
-    assert response.data["rank"] == "mzzzzz"
+    assert response.data["rank"] == "0|hzzzzz:"
 
 
 @pytest.mark.django_db

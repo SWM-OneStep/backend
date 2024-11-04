@@ -17,13 +17,14 @@ from todos.models import SubTodo
 
 @pytest.mark.django_db
 def test_update_subtodo_success(
-    create_todo, authenticated_client, content, date
+    create_todo, authenticated_client, content, date, rank
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     url = reverse("subtodos")  # URL name for the SubTodoView patch method
     data = {
@@ -39,19 +40,21 @@ def test_update_subtodo_success(
 
 @pytest.mark.django_db
 def test_update_subtodo_success_top_rank(
-    create_todo, authenticated_client, content, date
+    create_todo, authenticated_client, content, date, rank
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     subtodo2 = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     url = reverse("subtodos")
     data = {
@@ -71,19 +74,21 @@ def test_update_subtodo_success_top_rank(
 
 @pytest.mark.django_db
 def test_update_subtodo_success_bottom_rank(
-    create_todo, authenticated_client, content, date
+    create_todo, authenticated_client, content, date, rank
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     subtodo2 = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     url = reverse("subtodos")
     data = {
@@ -103,25 +108,28 @@ def test_update_subtodo_success_bottom_rank(
 
 @pytest.mark.django_db
 def test_update_subtodo_success_between_rank(
-    create_todo, authenticated_client, content, date
+    create_todo, authenticated_client, content, date, rank
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     subtodo2 = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[1],
     )
     subtodo3 = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[2],
     )
     url = reverse("subtodos")
     data = {
@@ -142,13 +150,14 @@ def test_update_subtodo_success_between_rank(
 
 @pytest.mark.django_db
 def test_update_subtodo_invalid_todo_id(
-    create_todo, authenticated_client, content, date
+    create_todo, authenticated_client, content, date, rank
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
         todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     url = reverse("subtodos")
     data = {

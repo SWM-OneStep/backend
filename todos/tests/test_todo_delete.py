@@ -14,7 +14,7 @@ from todos.models import Todo
 
 @pytest.mark.django_db
 def test_delete_todo_success(
-    authenticated_client, create_category, create_user, date, content
+    authenticated_client, create_category, create_user, date, content, rank
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -22,6 +22,7 @@ def test_delete_todo_success(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[0],
     )
     url = reverse("todos")
     data = {"todo_id": todo.id}
