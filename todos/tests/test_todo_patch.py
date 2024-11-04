@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
-from Lexorank.src.LexoRank import LexoRank
+from Lexorank.src.lexo_rank import LexoRank
 from todos.models import Todo
 
 """
@@ -143,7 +143,7 @@ def test_update_todo_success_None_order(
 
 @pytest.mark.django_db
 def test_update_todo_success_between_order(
-    create_user, create_category, authenticated_client, date, content
+    create_user, create_category, authenticated_client, date, content, rank
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -151,6 +151,7 @@ def test_update_todo_success_between_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[0],
     )
     todo2 = Todo.objects.create(
         user_id=create_user,
@@ -158,6 +159,7 @@ def test_update_todo_success_between_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[1],
     )
     todo3 = Todo.objects.create(
         user_id=create_user,
@@ -165,6 +167,7 @@ def test_update_todo_success_between_order(
         due_time=None,
         content=content,
         category_id=create_category,
+        rank=rank[2],
     )
     url = reverse("todos")
     data = {

@@ -5,7 +5,7 @@ from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 
 from accounts.models import User
-from Lexorank.src.LexoRank import LexoRank
+from Lexorank.src.lexo_rank import LexoRank
 
 
 class TodosManager(models.Manager):
@@ -20,8 +20,17 @@ class TodosManager(models.Manager):
             instance.save()
         return instances
 
+    def get_next_rank_subtodo(self, user_id):
+        get_list = (
+            SubTodo.objects.filter(todo_id__user_id=user_id)
+            .select_related("todo_id")
+            .last()
+        )
+        if get_list is None:
+            return str(LexoRank.middle())
+        return str(LexoRank.gen_next(LexoRank.parse(get_list.rank)))
+
     def get_next_rank(self, user_id):
-        # Get the last rank of the user
         get_list = (
             self.get_queryset().filter(user_id=user_id).order_by("rank").last()
         )
@@ -37,20 +46,15 @@ class TodosManager(models.Manager):
             get_rank = str(LexoRank.parse(get_next_rank).gen_prev())
             return get_rank
         elif next_id is None:  # Move to the bottom
-            prev_instance = LexoRank.parse(
-                self.get_queryset().get(id=prev_id).rank
-            )
-            return str(LexoRank.gen_next(prev_instance.rank))
+            get_prev_rank = self.get_queryset().get(id=prev_id).rank
+            get_rank = str(LexoRank.parse(get_prev_rank).gen_next())
+            return get_rank
         else:  # Move to after prev_id
-            prev_instance = LexoRank.parse(
-                self.get_queryset().get(id=prev_id).rank
-            )
-            next_instance = LexoRank.parse(
-                self.get_queryset().get(id=next_id).rank
-            )
-            return str(
-                LexoRank.between(prev_instance.rank, next_instance.rank)
-            )
+            prev_rank = self.get_queryset().get(id=prev_id).rank
+            prev_lexo = LexoRank.parse(prev_rank)
+            next_rank = self.get_queryset().get(id=next_id).rank
+            next_instance = LexoRank.parse(next_rank)
+            return str(prev_lexo.between(next_instance))
 
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)

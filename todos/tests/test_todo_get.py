@@ -19,11 +19,7 @@ from todos.models import Todo
 
 @pytest.mark.django_db
 def test_get_todos(
-    create_user,
-    date,
-    content,
-    create_category,
-    authenticated_client,
+    create_user, date, content, create_category, authenticated_client, rank
 ):
     url = reverse("todos")
     Todo.objects.create(
@@ -32,7 +28,7 @@ def test_get_todos(
         due_time=None,
         content=content,
         category_id=create_category,
-        rank="0|Vzzzzz:",
+        rank=rank[0],
     )
     Todo.objects.create(
         user_id=create_user,
@@ -40,7 +36,7 @@ def test_get_todos(
         due_time=None,
         content=content,
         category_id=create_category,
-        rank="0|4n210Vz:",
+        rank=rank[1],
     )
     response = authenticated_client.get(
         url, {"user_id": create_user.id}, format="json"

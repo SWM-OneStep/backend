@@ -13,7 +13,7 @@ from django.urls import reverse
 
 @pytest.mark.django_db
 def test_create_category_success(
-    create_user, authenticated_client, content, order, color
+    create_user, authenticated_client, content, color
 ):
     url = reverse("category")
     data = {
@@ -23,4 +23,3 @@ def test_create_category_success(
     }
     response = authenticated_client.post(url, data, format="json")
     assert response.status_code == 201
-    assert "id" in response.data

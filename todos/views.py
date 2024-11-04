@@ -287,11 +287,9 @@ class SubTodoView(APIView):
         - content 는 암호화 되어야 합니다(// 미정)
         """
         set_sentry_user(request.user)
-        data = request.data
-        data["rank"] = SubTodo.objects.get_next_rank(request.user.id)
-        serializer = SubTodoSerializer(
-            context={"request": request}, data=data, many=True
-        )
+        data = request.data.copy()
+        data["rank"] = SubTodo.objects.get_next_rank_subtodo(request.user.id)
+        serializer = SubTodoSerializer(context={"request": request}, data=data)
 
         if serializer.is_valid(raise_exception=True):
             send_push_notification_device(

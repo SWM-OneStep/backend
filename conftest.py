@@ -48,11 +48,13 @@ def create_category(
     create_user,
     title="Test Category",
     color=1,
+    rank="0|hzzzzz:",
 ):
     category = Category.objects.create(
         user_id=create_user,
         title=title,
         color=color,
+        rank=rank,
     )
     return category
 
@@ -66,6 +68,7 @@ def create_todo(
     due_time=None,
     content="Test Todo",
     is_completed=False,
+    rank="0|hzzzzz:",
 ):
     todo = Todo.objects.create(
         user_id=create_user,
@@ -74,6 +77,7 @@ def create_todo(
         category_id=create_category,
         content=content,
         is_completed=is_completed,
+        rank=rank,
     )
     return todo
 
@@ -86,6 +90,7 @@ def create_subtodo(
     date="2024-08-01",
     due_time=None,
     is_completed=False,
+    rank="0|hzzzzz:",
 ):
     subtodo = SubTodo.objects.create(
         content=content,
@@ -93,6 +98,7 @@ def create_subtodo(
         due_time=due_time,
         todo=create_todo,
         is_completed=is_completed,
+        rank=rank,
     )
     return subtodo
 
@@ -109,7 +115,7 @@ def content():
 
 @pytest.fixture
 def rank():
-    orders = ["0|Vzzzzz:", "0|4n210Vz:", "0|35RYXWjz:"]
+    orders = ["0|hzzzzz:", "0|i00007:", "0|i0000f:"]
     return orders
 
 
