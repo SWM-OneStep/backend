@@ -12,6 +12,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          submodules: true
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          persist-credentials: false
+          fetch-depth: 0
 
       - name: Update version.txt
         run: |
