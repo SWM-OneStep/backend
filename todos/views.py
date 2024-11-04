@@ -746,7 +746,7 @@ class InboxView(APIView):
 
 
 class RecommendSubTodo(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
