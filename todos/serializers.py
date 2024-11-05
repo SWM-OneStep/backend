@@ -64,7 +64,7 @@ class SubTodoSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         if request.method == "PATCH":
             if not any(
-                data.get(field)
+                data.get(field) is not None
                 for field in ["content", "date", "is_completed", "patch_rank"]
             ):
                 raise serializers.ValidationError(
@@ -149,7 +149,7 @@ class TodoSerializer(serializers.ModelSerializer):
 
         if request.method == "PATCH":
             if not any(
-                data.get(field)
+                data.get(field) is not None
                 for field in [
                     "content",
                     "category_id",

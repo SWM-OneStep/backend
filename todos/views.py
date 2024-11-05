@@ -76,6 +76,7 @@ class TodoView(APIView):
                 context={"request": request}, data=data
             )
             if serializer.is_valid(raise_exception=True):
+                serializer.save()
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
@@ -291,10 +292,15 @@ class SubTodoView(APIView):
         """
         set_sentry_user(request.user)
         data = request.data.copy()
-        data["rank"] = SubTodo.objects.get_next_rank_subtodo(request.user.id)
-        serializer = SubTodoSerializer(context={"request": request}, data=data)
-
+        rank = SubTodo.objects.get_next_rank_subtodo(request.user.id)
+        for i in range(len(data)):
+            data[i]["rank"] = rank
+            rank = SubTodo.objects.gen_next_rank(rank)
+        serializer = SubTodoSerializer(
+            context={"request": request}, data=data, many=True
+        )
         if serializer.is_valid(raise_exception=True):
+            serializer.save()
             send_push_notification_device(
                 request.auth.get("device"),
                 request.user,
@@ -506,6 +512,7 @@ class CategoryView(APIView):
             )
 
             if serializer.is_valid(raise_exception=True):
+                serializer.save()
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,

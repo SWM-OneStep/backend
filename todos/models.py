@@ -28,7 +28,10 @@ class TodosManager(models.Manager):
         )
         if get_list is None:
             return str(LexoRank.middle())
-        return str(LexoRank.gen_next(LexoRank.parse(get_list.rank)))
+        return str((LexoRank.parse(get_list.rank)).gen_next())
+
+    def gen_next_rank(self, prev_rank):
+        return str(LexoRank.parse(prev_rank).gen_next())
 
     def get_next_rank(self, user_id):
         get_list = (
@@ -36,7 +39,7 @@ class TodosManager(models.Manager):
         )
         if get_list is None:
             return str(LexoRank.middle())
-        return str(LexoRank.gen_next(LexoRank.parse(get_list.rank)))
+        return str(LexoRank.parse(get_list.rank).gen_next())
 
     def get_update_rank(self, instance, prev_id, next_id):
         if prev_id is None and next_id is None:
@@ -150,7 +153,8 @@ class Todo(TimeStamp):
     date = models.DateField(null=True)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
-    rank = models.CharField(max_length=255)
+
+    rank = models.CharField(max_length=255, default="0|hzzzzz:")
 
     objects = TodosManager()
 
@@ -167,7 +171,8 @@ class SubTodo(TimeStamp):
     due_time = models.TimeField(null=True, blank=True)
     date = models.DateField(null=True)
     is_completed = models.BooleanField(default=False)
-    rank = models.CharField(max_length=255)
+
+    rank = models.CharField(max_length=255, default="0|hzzzzz:")
 
     objects = TodosManager()
 
@@ -182,7 +187,8 @@ class Category(TimeStamp):
         validators=[MinValueValidator(0), MaxValueValidator(8)]
     )
     title = models.CharField(max_length=100, null=True)
-    rank = models.CharField(max_length=255)
+
+    rank = models.CharField(max_length=255, default="0|hzzzzz:")
 
     objects = TodosManager()
 
