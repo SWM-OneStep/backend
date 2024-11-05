@@ -16,10 +16,11 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import django.db.models.signals
+import httpx
 import pymysql
 import resend
 import sentry_sdk
-from openai import OpenAI
+from openai import AsyncOpenAI
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -190,7 +191,15 @@ DATABASES = {
 
 # Add OpenAI API Key
 OPENAI_API_KEY = SECRETS.get("OPENAI_API_KEY")
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = AsyncOpenAI(
+    api_key=OPENAI_API_KEY,
+    http_client=httpx.AsyncClient(
+        limits=httpx.Limits(
+            max_keepalive_connections=100, max_connections=1000
+        )
+    ),
+    timeout=httpx.Timeout(timeout=15.0, connect=5.0),
+)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
