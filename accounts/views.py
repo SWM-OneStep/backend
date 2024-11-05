@@ -1,13 +1,18 @@
+import jwt
+import requests
+import sentry_sdk
+import urllib3
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from google.auth.transport import requests
+from fcm_django.models import FCMDevice
+from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.models import Device
+from accounts.exceptions import LoginException
 from accounts.serializers import UserSerializer
 from accounts.tokens import CustomRefreshToken
 
@@ -15,45 +20,117 @@ User = get_user_model()
 
 
 JWT_SECRET_KEY = settings.SECRETS.get("JWT_SECRET_KEY")
-GOOGLE_CLIENT_ID = settings.SECRETS.get("GCID")
+GOOGLE_ANDROID_CLIENT_ID = settings.SECRETS.get("GCID")
+GOOGLE_IOS_CLIENT_ID = settings.SECRETS.get("GOOGLE_IOS_CLIENT_ID")
+DEVICE_TYPE_ANDROID = 0
+DEVICE_TYPE_IOS = 1
 
 
-class TestView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"message": "Hello, World!"})
-
-
-class GoogleLogin(APIView):
-    google_client_id = settings.SECRETS.get("GCID")
+class BaseLogin(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
-        token = request.data.get("token")
-        device_token = request.data.get("device_token")
-        if not device_token or not token:
-            raise Exception("device token and token is required")
         try:
-            idinfo = id_token.verify_oauth2_token(
-                token, requests.Request(), audience=GOOGLE_CLIENT_ID
+            device_type, token, device_token = self.validate_request(request)
+            email = self.verify_token(device_type, token)
+            user, is_new = User.get_or_create_user(email)
+            refresh = self.handle_device_token(user, device_token)
+            return Response(
+                {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "is_new": is_new,
+                    "email": email,
+                },
+                status=status.HTTP_200_OK,
             )
-            if "accounts.google.com" in idinfo["iss"]:
-                email = idinfo["email"]
-                user, _ = User.objects.get_or_create(
-                    username=email, password=""
-                )
-                Device.objects.get_or_create(user_id=user, token=device_token)
-                refresh = CustomRefreshToken.for_user(user, device_token)
-                return Response(
-                    {
-                        "refresh": str(refresh),
-                        "access": str(refresh.access_token),
-                    }
-                )
-        except Exception:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def validate_request(self, request):
+        device_type = request.data.get("type", None)
+        token = request.data.get("token")
+        device_token = request.data.get("device_token", None)
+        if not token or device_type is None:
+            raise LoginException()
+        return device_type, token, device_token
+
+    def handle_device_token(self, user, device_token):
+        if device_token:
+            FCMDevice.objects.get_or_create(
+                user=user, registration_id=device_token
+            )
+            return CustomRefreshToken.for_user(user, device_token)
+        else:
+            return CustomRefreshToken.for_user_without_device(user)
+
+
+class GoogleLogin(BaseLogin):
+    def verify_token(self, device_type, token):
+        audience = self.get_audience(device_type)
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            audience=audience,
+        )
+        self.validate_issuer(idinfo)
+        return idinfo["email"]
+
+    def get_audience(self, device_type):
+        if device_type == DEVICE_TYPE_ANDROID:
+            return GOOGLE_ANDROID_CLIENT_ID
+        elif device_type == DEVICE_TYPE_IOS:
+            return GOOGLE_IOS_CLIENT_ID
+        else:
+            raise LoginException("Invalid device type")
+
+    def validate_issuer(self, idinfo):
+        if "accounts.google.com" not in idinfo["iss"]:
+            raise LoginException("Invalid token")
+
+
+class AppleLogin(BaseLogin):
+    APPLE_APP_ID = settings.SECRETS.get("APPLE_APP_ID")
+    APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
+
+    def verify_token(self, device_type, identity_token):
+        if device_type != DEVICE_TYPE_IOS:
+            raise LoginException("Invalid device type")
+        try:
+            unverified_header = jwt.get_unverified_header(identity_token)
+            kid = unverified_header["kid"]
+            public_key = self.get_apple_public_key(kid)
+            decoded_token = jwt.decode(
+                identity_token,
+                public_key,
+                algorithms=["RS256"],
+                audience=self.APPLE_APP_ID,
+                issuer="https://appleid.apple.com",
+            )
+            email = decoded_token.get("email", None)
+            return email
+        except jwt.ExpiredSignatureError as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException("Token has expired")
+        except jwt.InvalidTokenError as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException("Invalid token")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raise LoginException(f"An unexpected error occurred: {e}")
+
+    def get_apple_public_key(self, kid):
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(self.APPLE_PUBLIC_KEYS_URL, verify=False)
+        keys = response.json().get("keys", [])
+        for key in keys:
+            if key["kid"] == kid:
+                return jwt.algorithms.RSAAlgorithm.from_jwk(key)
+        raise ValueError("Matching key not found")
 
 
 class UserRetrieveView(APIView):
@@ -62,14 +139,102 @@ class UserRetrieveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = User.objects.get(username=request.user.username)
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+        try:
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                }
+            )
+            user = User.objects.get(
+                username=request.user.username, deleted_at__isnull=True
+            )
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def patch(self, request):
+        """
+        입력 : is_subscribe (Boolean), is_premium (Boolean)
+        """
+        try:
+            user = request.user
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                }
+            )
+            if request.data.get("is_premium"):
+                user.is_premium = request.data.get("is_premium")
+            if request.data.get("is_subscribed"):
+                user.is_subscribed = request.data.get("is_subscribed")
+            user.save()
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def delete(self, request):
+        try:
+            user = request.user
+            user = User.delete_user(instance=user)
+            return Response(
+                {"message": "User deleted"}, status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AndroidClientView(APIView):
     def get(self, request):
-        ANDROID_CLIENT_ID = settings.SECRETS.get("ANDROID_CLIENT_ID")
-        return Response(
-            {"android_client_id": ANDROID_CLIENT_ID}, status=status.HTTP_200_OK
-        )
+        try:
+            return Response(
+                {"android_client_id": GOOGLE_ANDROID_CLIENT_ID},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "Android client id not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class IOSClientView(APIView):
+    def get(self, request):
+        try:
+            return Response(
+                {"ios_client_id": GOOGLE_IOS_CLIENT_ID},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "IOS client id not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

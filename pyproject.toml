@@ -5,6 +5,7 @@ requires-python = ">=3.10"
 [tool.ruff]
 # Set the maximum line length to 79.
 line-length = 79
+exclude = ["*/migrations", "onestep_be/setting"]
 
 [tool.ruff.lint]
 # Add the `line-too-long` rule to the enforced rule set.

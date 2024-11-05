@@ -1,6 +1,6 @@
+from accounts.aws import get_secret
+
 from onestep_be.settings import *
-
-
 SECRETS = eval(get_secret())
 
 DATABASES = {
@@ -13,4 +13,3 @@ DATABASES = {
         "PORT": SECRETS.get("DB_PORT"),
     }
 }
-

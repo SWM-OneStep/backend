@@ -1,6 +1,5 @@
 from onestep_be.settings import *
 
-
 SKIP_AUTHENTICATION = True
 
 if SKIP_AUTHENTICATION:

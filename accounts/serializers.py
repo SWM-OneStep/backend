@@ -37,4 +37,11 @@ class LoginPayloadSerializer(LoginRequestSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "username", "social_provider"]
+        fields = [
+            "id",
+            "email",
+            "username",
+            "social_provider",
+            "is_subscribed",
+            "is_premium",
+        ]

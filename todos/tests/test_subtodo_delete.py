@@ -14,14 +14,14 @@ from todos.models import SubTodo
 
 @pytest.mark.django_db
 def test_delete_subtodo_success(
-    create_todo, authenticated_client, content, date, order
+    create_todo, authenticated_client, content, date, rank
 ):
     subtodo = SubTodo.objects.create(
         content=content,
         date=date,
-        todo=create_todo,
-        order=order(0),
+        todo_id=create_todo,
         is_completed=False,
+        rank=rank[0],
     )
     url = reverse("subtodos")
     data = {"subtodo_id": subtodo.id}
@@ -37,7 +37,7 @@ def test_delete_subtodo_success(
 
 
 @pytest.mark.django_db
-def test_delete_subtodo_invalid_id(authenticated_client, content, date, order):
+def test_delete_subtodo_invalid_id(authenticated_client):
     url = reverse("subtodos")
     data = {
         "subtodo_id": 999  # Invalid subtodo id

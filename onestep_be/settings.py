@@ -12,18 +12,25 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import django.db.models.signals
+import pymysql
+import resend
 import sentry_sdk
 from openai import OpenAI
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from accounts.aws import get_secret
 
+CSRF_TRUSTED_ORIGINS = ["https://*.stepby.one", "https://stepby.one"]
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SKIP_AUTHENTICATION = False
+
+pymysql.install_as_MySQLdb()
 
 # Load all secret variables stored in AWS secret manager
 SECRETS = eval(get_secret())
@@ -55,11 +62,10 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "todos",
+    "feedback",
     "rest_framework_simplejwt",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
+    "fcm_django",
+    "django_crontab",
 ]
 
 MIDDLEWARE = [
@@ -71,33 +77,35 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
     "djangorestframework_camel_case.middleware.CamelCaseMiddleWare",
+]
+
+CRONJOBS = [
+    ("0 8 * * *", "todos.jobs.send_morning_alarm"),
+    ("0 14 * * *", "todos.jobs.send_afternoon_alarm"),
+    ("0 20 * * *", "todos.jobs.send_evening_alarm"),
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "accounts.authentication.CustomJWTAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
         "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
-        # Any other renders
     ),
     "DEFAULT_PARSER_CLASSES": (
-        # If you use MultiPartFormParser or FormParser, we also have a camel case version # noqa : E501
         "djangorestframework_camel_case.parser.CamelCaseFormParser",
         "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
-        # Any other parsers
     ),
 }
 
 # SimpleJWT settings
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
@@ -111,7 +119,10 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",  # noqa : E501
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_TOKEN_CLASSES": (
+        "rest_framework_simplejwt.tokens.AccessToken",
+        "accounts.tokens.CustomRefreshToken",
+    ),
     "TOKEN_TYPE_CLAIM": "token_type",
     "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
@@ -178,7 +189,7 @@ DATABASES = {
 
 # Add OpenAI API Key
 OPENAI_API_KEY = SECRETS.get("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -221,17 +232,45 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# BASE_DIR은 Django 프로젝트의 루트 디렉토리를 가리킵니다.
+# version.txt 파일이 BASE_DIR에 있다고 가정합니다.
+VERSION_FILE_PATH = BASE_DIR.parent / "version.txt"
+
+# 파일 읽기
+try:
+    with VERSION_FILE_PATH.open("r") as file:
+        # 파일의 내용을 읽어서 변수에 저장
+        PROJECT_VERSION = file.read().strip()
+        if PROJECT_VERSION == "":
+            PROJECT_VERSION = "Unknown"
+            SENTRY_ENVIRONMENT = "localhost"
+        else:
+            SENTRY_ENVIRONMENT = PROJECT_VERSION.split("@")[0]
+except FileNotFoundError:
+    PROJECT_VERSION = "Unknown"  # 파일이 없을 경우 기본값
+
 # sentry settings
+SENTRY_DSN = SECRETS.get("SENTRY_DSN")
+
+
+# sentry Filtering
+def setnry_filter_transactions(event, hint):
+    url_string = event["request"]["url"]
+    parsed_url = urlparse(url_string)
+
+    if parsed_url.path == "/auth/android/" or parsed_url.path == "/swagger/":
+        return None
+    return event
+
 
 sentry_sdk.init(
-    dsn="https://9425334e0e90c405218fa9613cea9a03@o4507736964136960.ingest.us.sentry.io/4507763025117184",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=0.5,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=0.5,
+    dsn=SENTRY_DSN,
+    traces_sample_rate=1.0,
+    release=PROJECT_VERSION,
+    profiles_sample_rate=1.0,
+    # environment=SENTRY_ENVIRONMENT,
+    environment="Testing",
     integrations=[
         DjangoIntegration(
             transaction_style="url",
@@ -243,18 +282,9 @@ sentry_sdk.init(
             ],
             cache_spans=False,
         ),
+        AsyncioIntegration(),
     ],
+    before_send_transaction=setnry_filter_transactions,
 )
 
-sentry_sdk.metrics.incr(key="api_calls", value=1)
-
-sentry_sdk.metrics.distribution(
-    key="processing_time",
-    value=0.002,
-    unit="second",
-)
-sentry_sdk.metrics.gauge(
-    key="cpu_usage",
-    value=94,
-    unit="percent",
-)
+resend.api_key = SECRETS.get("RESEND")

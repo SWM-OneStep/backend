@@ -12,6 +12,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.ACCESS_TOKEN }}
+          submodules: true
+
+      - name: Update version.txt
+        run: |
+          VERSION=$(TZ=Asia/Seoul date +'%Y.%m.%d.%H.%M.%S')  # 한국 시간대 사용
+          echo "onestep_prod@${VERSION}" > version.txt
 
       - name: Set Dockerfile Path
         id: dockerfile-path

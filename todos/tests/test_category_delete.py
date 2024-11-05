@@ -14,13 +14,12 @@ from todos.models import Category
 
 @pytest.mark.django_db
 def test_delete_category_success(
-    create_user, authenticated_client, content, order, color
+    create_user, authenticated_client, content, color
 ):
     category = Category.objects.create(
         user_id=create_user,
         title=content,
         color=color,
-        order=order(0),
     )
     url = reverse("category")
     data = {"category_id": category.id}
@@ -37,7 +36,7 @@ def test_delete_category_success(
 
 @pytest.mark.django_db
 def test_delete_category_invalid_id(
-    authenticated_client, content, order, color
+    authenticated_client,
 ):
     url = reverse("category")
     data = {"category_id": 999}
