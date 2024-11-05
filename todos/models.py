@@ -30,6 +30,9 @@ class TodosManager(models.Manager):
             return str(LexoRank.middle())
         return str((LexoRank.parse(get_list.rank)).gen_next())
 
+    def gen_next_rank(self, prev_rank):
+        return str(LexoRank.parse(prev_rank).gen_next())
+
     def get_next_rank(self, user_id):
         get_list = (
             self.get_queryset().filter(user_id=user_id).order_by("rank").last()
