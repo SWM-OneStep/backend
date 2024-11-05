@@ -28,7 +28,7 @@ class TodosManager(models.Manager):
         )
         if get_list is None:
             return str(LexoRank.middle())
-        return str(LexoRank.gen_next(LexoRank.parse(get_list.rank)))
+        return str((LexoRank.parse(get_list.rank)).gen_next())
 
     def get_next_rank(self, user_id):
         get_list = (
