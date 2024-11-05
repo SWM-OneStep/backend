@@ -4,6 +4,9 @@
 import json
 
 import sentry_sdk
+from asgiref.sync import sync_to_async
+from django.http import JsonResponse
+from django.views import View
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
@@ -491,6 +494,7 @@ class CategoryView(APIView):
         - title은 1자 이상 50자 이하여야합니다.
         - color는 7자여야합니다.
         """
+
         set_sentry_user(request.user)
         try:
             data = request.data.copy()
@@ -745,9 +749,7 @@ class InboxView(APIView):
             )
 
 
-class RecommendSubTodo(APIView):
-    # permission_classes = [IsAuthenticated]
-
+class RecommendSubTodo(View):
     @swagger_auto_schema(
         tags=["RecommendSubTodo"],
         manual_parameters=[
@@ -767,26 +769,31 @@ class RecommendSubTodo(APIView):
         - 이 함수는 sub todo를 추천하는 함수입니다.
         """
         set_sentry_user(request.user)
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse(
+                {"error": "Authentication required"}, status=403
+            )
 
-        user_id = request.user.id
+        user_id = user.id
         try:
             flag, message = UserLastUsage.check_rate_limit(
                 user_id=user_id, RATE_LIMIT_SECONDS=RATE_LIMIT_SECONDS
             )
 
             if flag is False:
-                return Response(
+                return JsonResponse(
                     {"error": message},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    status=429,
                 )
             todo_id = request.GET.get("todo_id")
             if todo_id is None:
                 sentry_sdk.capture_message(
                     "Todo_id not provided", level="error"
                 )
-                return Response(
+                return JsonResponse(
                     {"error": "todo_id must be provided"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=400,
                 )
             # 비동기적으로 OpenAI API 호출 처리
             todo = Todo.objects.get_with_id(id=todo_id)
@@ -797,25 +804,25 @@ class RecommendSubTodo(APIView):
                 "due_time": todo.due_time,
                 "category_id": todo.category_id,
             }
-            completion = self.get_openai_completion(todo_data)
-            return Response(
-                json.loads(completion.choices[0].message.content),
-                status=status.HTTP_200_OK,
+            completion = sync_to_async(self.get_openai_completion)(todo_data)
+            response_data = json.loads(
+                completion["choices"][0]["message"]["content"]
             )
+
+            return JsonResponse(response_data, status=200)
         except Todo.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
-            return Response(
-                {"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND
+            return JsonResponse(
+                {"error": "Todo not found"},
+                status=404,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            return Response(
-                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return JsonResponse({"error": str(e)}, status=400)
 
     # 비동기적으로 OpenAI API를 호출하는 함수
-    def get_openai_completion(self, todo):
-        return openai_client.chat.completions.create(
+    async def get_openai_completion(self, todo):
+        return await openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
