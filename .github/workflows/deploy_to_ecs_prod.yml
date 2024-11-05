@@ -40,24 +40,23 @@ jobs:
       - name: Build Docker image
         run: |
 
-          docker build -f ${{ env.DOCKERFILE_PATH }} -t ${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest .
-          docker tag ${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
+          docker build -f ${{ env.DOCKERFILE_PATH }} -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:${{ github.sha }} .
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:${{ github.sha }}
 
       - name: Render ECS task definition
         run: |
-          python render_ecs_task_definition.py --aws_account_id ${{ secrets.AWS_ACCOUNT_ID }} --aws_region ${{ secrets.AWS_REGION }} --ecr_repository_name ${{ secrets.ECR_REPOSITORY_NAME_PROD }} --aws_secret_name ${{ secrets.AWS_SECRET_NAME }} --aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --aws_secret_name_prod ${{ secrets.AWS_SECRET_NAME_PROD }} --aws_region_name ${{ secrets.AWS_REGION_NAME }}
+          python render_ecs_task_definition.py --aws_is_prod true --aws_account_id ${{ secrets.AWS_ACCOUNT_ID }} --aws_region ${{ secrets.AWS_REGION }} --ecr_repository_name ${{ secrets.ECR_REPOSITORY_NAME_PROD }} --aws_secret_name ${{ secrets.AWS_SECRET_NAME }} --aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --aws_secret_name_prod ${{ secrets.AWS_SECRET_NAME_PROD }} --aws_region_name ${{ secrets.AWS_REGION_NAME }}
 
       - name: Register ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ecs-task-def.json
+          task-definition: ecs-task-prod-def.json
           container-name: onestep-prod
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:latest
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY_NAME_PROD }}:${{ github.sha }}
 
       - name: Deploy to ECS service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1

@@ -3,11 +3,9 @@ import json
 
 
 def replace_ecs_task_definition():
-
-    with open('ecs-task-def.json', 'r') as file:
-        task_definition = json.load(file)
-
+    
     parser = argparse.ArgumentParser()
+    parser.add_argument("--aws_is_prod", type=str)
     parser.add_argument("--aws_account_id", type=str)
     parser.add_argument("--aws_region", type=str)
     parser.add_argument("--aws_region_name", type=str)
@@ -18,12 +16,23 @@ def replace_ecs_task_definition():
     parser.add_argument("--aws_secret_name_prod", type=str)
     args = parser.parse_args()
 
+    is_prod = args.aws_is_prod
+
+    if is_prod == "true":
+        file_name = "ecs-task-prod-def.json"
+    else:
+        file_name = "ecs-task-def.json"
+
+    with open(file_name, 'r') as file:
+        task_definition = json.load(file)
+
     global key_map
     key_map = {
         "AWS_ACCOUNT_ID": args.aws_account_id,
         "AWS_REGION": args.aws_region,
         "AWS_REGION_NAME": args.aws_region_name,
         "ECR_REPOSITORY_NAME": args.ecr_repository_name,
+        "ECR_REPOSITORY_NAME_PROD": args.ecr_repository_name,
         "AWS_SECRET_NAME": args.aws_secret_name,
         "AWS_ACCESS_KEY_ID": args.aws_access_key_id,
         "AWS_SECRET_ACCESS_KEY": args.aws_secret_access_key,
@@ -61,7 +70,7 @@ def replace_ecs_task_definition():
         return obj
 
     task_definition = render_ecs_task_definition(task_definition)
-    with open('ecs-task-def.json', 'w') as file:
+    with open(file_name, 'w') as file:
         json.dump(task_definition, file, indent=2)
 
 
