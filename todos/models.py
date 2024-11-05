@@ -151,7 +151,7 @@ class Todo(TimeStamp):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
 
-    rank = models.CharField(max_length=255)
+    rank = models.CharField(max_length=255, default="0|hzzzzz:")
 
     objects = TodosManager()
 
@@ -169,7 +169,7 @@ class SubTodo(TimeStamp):
     date = models.DateField(null=True)
     is_completed = models.BooleanField(default=False)
 
-    rank = models.CharField(max_length=255)
+    rank = models.CharField(max_length=255, default="0|hzzzzz:")
 
     objects = TodosManager()
 
@@ -185,7 +185,7 @@ class Category(TimeStamp):
     )
     title = models.CharField(max_length=100, null=True)
 
-    rank = models.CharField(max_length=255)
+    rank = models.CharField(max_length=255, default="0|hzzzzz:")
 
     objects = TodosManager()
 
