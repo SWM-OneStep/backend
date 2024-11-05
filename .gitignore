@@ -8,6 +8,9 @@
 # Icon must end with two \r
 Icon
 
+# example.py
+example_1.py
+
 onestep_dev/
 # Thumbnails
 ._*
