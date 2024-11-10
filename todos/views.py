@@ -4,6 +4,7 @@
 import json
 
 import sentry_sdk
+from asgiref.sync import async_to_sync
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
@@ -797,7 +798,7 @@ class RecommendSubTodo(APIView):
                 "due_time": todo.due_time,
                 "category_id": todo.category_id,
             }
-            completion = self.get_openai_completion(todo_data)
+            completion = async_to_sync(self.get_openai_completion)(todo_data)
             return Response(
                 json.loads(completion.choices[0].message.content),
                 status=status.HTTP_200_OK,
