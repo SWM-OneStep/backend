@@ -117,3 +117,14 @@ class PatchNote(models.Model):
             return user_email_list
         except Exception as e:
             sentry_sdk.capture_exception(e)
+
+
+class Profile(models.Model):
+    user_id = models.ForeignKey(
+        User, on_delete=models.CASCADE, elated_name="profiles"
+    )
+    username = models.CharField(max_length=255, null=True)
+    age = models.IntegerField(min_length=10, max_length=150, null=True)
+    job = models.CharField(max_length=255, null=True)
+    lifestyle = models.CharField(max_length=255, null=True)
+    delay_reason = models.CharField(max_length=255, null=True)
