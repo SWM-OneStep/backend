@@ -120,11 +120,28 @@ class PatchNote(models.Model):
 
 
 class Profile(models.Model):
+    class Age(models.TextChoices):
+        TEN = "10"
+        TWENTY = "20"
+        THIRTY = "30"
+        FOURTY = "40"
+        FIFTY = "50"
+
     user_id = models.ForeignKey(
-        User, on_delete=models.CASCADE, elated_name="profiles"
+        User,
+        on_delete=models.CASCADE,
+        related_name="profiles",
+        null=True,
+        blank=True,
     )
     username = models.CharField(max_length=255, null=True)
-    age = models.IntegerField(min_length=10, max_length=150, null=True)
-    job = models.CharField(max_length=255, null=True)
-    lifestyle = models.CharField(max_length=255, null=True)
-    delay_reason = models.CharField(max_length=255, null=True)
+    age = models.CharField(
+        max_length=30,
+        choices=Age.choices,
+        null=True,
+        blank=True,
+    )
+    job = models.CharField(max_length=255, null=True, blank=True)
+    sleep_time = models.TimeField(null=True, blank=True)
+    wake_time = models.TimeField(null=True, blank=True)
+    delay_reason = models.CharField(max_length=255, null=True, blank=True)
