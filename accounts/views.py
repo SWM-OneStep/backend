@@ -13,7 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.exceptions import LoginException
-from accounts.serializers import UserSerializer
+from accounts.models import Profile
+from accounts.serializers import ProfileSerializer, UserSerializer
 from accounts.tokens import CustomRefreshToken
 
 User = get_user_model()
@@ -236,5 +237,92 @@ class IOSClientView(APIView):
             sentry_sdk.capture_exception(e)
             return Response(
                 {"error": "IOS client id not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        - profile 정보를 조회합니다.
+        - 입력 : user_id
+        """
+        user_id = request.user.id
+        try:
+            user_info = Profile.objects.get(user_id=user_id)
+            serializer = ProfileSerializer(user_info)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Profile.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "Profile not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    def post(self, request):
+        """
+        - profile 정보를 입력받아서 저장합니다.
+        - 입력 : username, age, job, sleep_time, wake_time, delay_reason
+        """
+        user_id = request.user.id
+        if Profile.objects.filter(
+            user_id=user_id, deleted_at__isnull=True
+        ).exists():
+            return Response(
+                {"error": "Profile already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        data = request.data.copy()
+        data["user_id"] = user_id
+
+        serializer = ProfileSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        """
+        - profile 정보를 입력받아서 수정합니다.
+        - 입력 : username, age, job, sleep_time, wake_time, delay_reason
+        - 예외 : user_id 를 수정하려는 경우에 400 에러가 발생합니다.
+        """
+        user_id = request.user.id
+        if "user_id" in request.data:
+            return Response(
+                {"error": "user_id cannot be updated"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            userInfo = Profile.objects.get(
+                user_id=user_id, deleted_at__isnull=True
+            )
+        except Profile.DoesNotExist as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": "Category not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer = ProfileSerializer(
+            context={"request": request},
+            instance=userInfo,
+            data=request.data,
+            partial=True,
+        )
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"error": serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )

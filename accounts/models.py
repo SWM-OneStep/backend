@@ -133,6 +133,7 @@ class Profile(models.Model):
         related_name="profiles",
         null=True,
         blank=True,
+        unique=True,
     )
     username = models.CharField(max_length=255, null=True)
     age = models.CharField(
