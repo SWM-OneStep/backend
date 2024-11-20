@@ -9,6 +9,7 @@ from accounts.views import (
     AppleLogin,
     GoogleLogin,
     IOSClientView,
+    ProfileView,
     UserRetrieveView,
 )
 
@@ -20,4 +21,5 @@ urlpatterns = [
     path("user/", UserRetrieveView.as_view(), name="user"),
     path("android/", AndroidClientView.as_view(), name="android"),
     path("ios/", IOSClientView.as_view(), name="ios"),
+    path("profile/", ProfileView.as_view(), name="profile"),
 ]

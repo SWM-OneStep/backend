@@ -266,17 +266,14 @@ class ProfileView(APIView):
         - profile 정보를 입력받아서 저장합니다.
         - 입력 : username, age, job, sleep_time, wake_time, delay_reason
         """
-        user_id = request.user.id
-        if Profile.objects.filter(
-            user_id=user_id, deleted_at__isnull=True
-        ).exists():
+        user = request.user.id
+        if Profile.objects.filter(user=user).exists():
             return Response(
                 {"error": "Profile already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         data = request.data.copy()
-        data["user_id"] = user_id
-
+        data["user"] = user
         serializer = ProfileSerializer(data=data)
         if serializer.is_valid():
             serializer.save()

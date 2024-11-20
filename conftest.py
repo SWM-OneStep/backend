@@ -8,6 +8,7 @@ import pytest
 from faker import Faker
 from rest_framework.test import APIClient
 
+from accounts.models import DelayReason
 from todos.models import Category, SubTodo, Todo, User
 
 client = APIClient()
@@ -169,3 +170,52 @@ def patch_send_push_notification_device(monkeypatch):
         "todos.firebase_messaging.send_push_notification_device",
         lambda *args, **kwargs: None,
     )
+
+
+@pytest.fixture
+def username():
+    return fake.user_name()
+
+
+@pytest.fixture
+def age():
+    ages = ["10", "20", "30", "40", "50"]
+    return random.choice(ages)
+
+
+@pytest.fixture
+def job():
+    jobs = ["중·고등학생", "대학생", "직장인", "자영업자", "기타"]
+    return random.choice(jobs)
+
+
+@pytest.fixture
+def sleep_time():
+    return fake.time(pattern="%H:%M")
+
+
+@pytest.fixture
+def delay_reason(create_delay_reason):
+    # reasons list
+    #     1. "할 일들이 너무 크게 느껴져요",
+    #     2. "꾸준히 이어가기 어려워요",
+    #     3. "우선순위를 정하기 어려워요",
+    #     4. "동기 부여가 없어요",
+    #     5. "집중력이 부족해요",
+    #     6. "심리적으로 불안해요",
+    reasons = [1, 2, 3, 4, 5, 6]
+    return random.sample(reasons, random.randint(1, 3))
+
+
+@pytest.fixture
+def create_delay_reason():
+    delay_reason = [
+        "할 일들이 너무 크게 느껴져요",
+        "꾸준히 이어가기 어려워요",
+        "우선순위를 정하기 어려워요",
+        "동기 부여가 없어요",
+        "집중력이 부족해요",
+        "심리적으로 불안해요",
+    ]
+    for reason in delay_reason:
+        DelayReason.objects.create(reason=reason)

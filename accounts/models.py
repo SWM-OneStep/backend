@@ -119,6 +119,13 @@ class PatchNote(models.Model):
             sentry_sdk.capture_exception(e)
 
 
+class DelayReason(models.Model):
+    reason = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.reason
+
+
 class Profile(models.Model):
     class Age(models.TextChoices):
         TEN = "10"
@@ -127,22 +134,16 @@ class Profile(models.Model):
         FOURTY = "40"
         FIFTY = "50"
 
-    user_id = models.ForeignKey(
+    user_id = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name="profiles",
-        null=True,
-        blank=True,
-        unique=True,
+        related_name="profile",
     )
     username = models.CharField(max_length=255, null=True)
     age = models.CharField(
         max_length=30,
         choices=Age.choices,
-        null=True,
-        blank=True,
     )
-    job = models.CharField(max_length=255, null=True, blank=True)
-    sleep_time = models.TimeField(null=True, blank=True)
-    wake_time = models.TimeField(null=True, blank=True)
-    delay_reason = models.CharField(max_length=255, null=True, blank=True)
+    job = models.CharField(max_length=255)
+    sleep_time = models.TimeField()
+    delay_reason = models.ManyToManyField(DelayReason)
