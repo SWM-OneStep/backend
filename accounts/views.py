@@ -4,6 +4,7 @@ import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from drf_yasg.utils import swagger_auto_schema
 from fcm_django.models import FCMDevice
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -14,7 +15,11 @@ from rest_framework.views import APIView
 
 from accounts.exceptions import LoginException
 from accounts.models import Profile
-from accounts.serializers import ProfileSerializer, UserSerializer
+from accounts.serializers import (
+    ProfileSerializer,
+    SwaggerProfileSerializer,
+    UserSerializer,
+)
 from accounts.tokens import CustomRefreshToken
 
 User = get_user_model()
@@ -244,10 +249,14 @@ class IOSClientView(APIView):
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        tags=["Category"],
+        operation_summary="Get a profile",
+        responses={201: ProfileSerializer},
+    )
     def get(self, request):
         """
         - profile 정보를 조회합니다.
-        - 입력 : user_id
         """
         user_id = request.user.id
         try:
@@ -261,6 +270,12 @@ class ProfileView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    @swagger_auto_schema(
+        tags=["Category"],
+        request_body=SwaggerProfileSerializer,
+        operation_summary="Create a profile",
+        responses={201: ProfileSerializer},
+    )
     def post(self, request):
         """
         - profile 정보를 입력받아서 저장합니다.
@@ -280,6 +295,12 @@ class ProfileView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(
+        tags=["Category"],
+        request_body=SwaggerProfileSerializer,
+        operation_summary="Patch a profile",
+        responses={201: ProfileSerializer},
+    )
     def patch(self, request):
         """
         - profile 정보를 입력받아서 수정합니다.

@@ -60,3 +60,16 @@ class ProfileSerializer(serializers.ModelSerializer):
             "sleep_time",
             "delay_reason",
         ]
+
+
+class SwaggerProfileSerializer(serializers.Serializer):
+    username = serializers.CharField(help_text="username")
+    age = serializers.CharField(help_text="age")
+    job = serializers.CharField(help_text="job")
+    sleep_time = serializers.CharField(help_text="sleep time")
+    delay_reason = serializers.ListField(
+        child=serializers.IntegerField(), help_text="delay reason"
+    )
+
+    class Meta:
+        fields = ["username", "age", "job", "sleep_time", "delay_reason"]
