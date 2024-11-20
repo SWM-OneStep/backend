@@ -266,14 +266,14 @@ class ProfileView(APIView):
         - profile 정보를 입력받아서 저장합니다.
         - 입력 : username, age, job, sleep_time, wake_time, delay_reason
         """
-        user = request.user.id
-        if Profile.objects.filter(user=user).exists():
+        user_id = request.user.id
+        if Profile.objects.filter(user_id=user_id).exists():
             return Response(
                 {"error": "Profile already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         data = request.data.copy()
-        data["user"] = user
+        data["user_id"] = user_id
         serializer = ProfileSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -294,9 +294,7 @@ class ProfileView(APIView):
             )
 
         try:
-            userInfo = Profile.objects.get(
-                user_id=user_id, deleted_at__isnull=True
-            )
+            userInfo = Profile.objects.get(user_id=user_id)
         except Profile.DoesNotExist as e:
             sentry_sdk.capture_exception(e)
             return Response(
