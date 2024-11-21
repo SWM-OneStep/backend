@@ -193,9 +193,7 @@ OPENAI_API_KEY = SECRETS.get("OPENAI_API_KEY")
 openai_client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
     http_client=httpx.AsyncClient(
-        limits=httpx.Limits(
-            max_keepalive_connections=100, max_connections=1000
-        )
+        limits=httpx.Limits(max_keepalive_connections=20, max_connections=20)
     ),
     timeout=httpx.Timeout(timeout=15.0, connect=5.0),
 )
