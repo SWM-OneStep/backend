@@ -181,6 +181,12 @@ class TodoSerializer(serializers.ModelSerializer):
                     instance, value.get("prev_id"), value.get("next_id")
                 )
                 setattr(instance, "rank", rank)
+            elif attr == "date":
+                subtodos = SubTodo.objects.filter(todo_id=instance.id).all()
+                for subtodo in subtodos:
+                    setattr(subtodo, attr, value)
+                    subtodo.save()
+                setattr(instance, attr, value)
             else:
                 setattr(instance, attr, value)
 
