@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Prefetch
 from django.utils import timezone
 
 from accounts.models import User
@@ -83,21 +83,12 @@ class TodosManager(models.Manager):
     def get_inbox(self, user_id):
         return (
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
-            .annotate(
-                subtodos_count=Count(
-                    "subtodos",
-                    filter=Q(
-                        subtodos__deleted_at__isnull=True,
-                        subtodos__date__isnull=True,
-                    ),
-                )
-            )
-            .filter(Q(date__isnull=True) | Q(subtodos_count__gt=0))
+            .filter(date__isnull=True)
             .prefetch_related(
                 Prefetch(
                     "subtodos",
                     queryset=SubTodo.objects.filter(
-                        deleted_at__isnull=True, date__isnull=True
+                        deleted_at__isnull=True
                     ).order_by("rank"),
                 )
             )
@@ -107,14 +98,14 @@ class TodosManager(models.Manager):
     def get_daily_with_date(self, user_id, start_date, end_date):
         return (
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
-            .filter(Q(date__gte=start_date, date__lte=end_date))
+            .filter(date__gte=start_date, date__lte=end_date)
             .exclude(date__isnull=True)
             .order_by("rank")
             .prefetch_related(
                 Prefetch(
                     "subtodos",
                     queryset=SubTodo.objects.filter(
-                        deleted_at__isnull=True, date__isnull=False
+                        deleted_at__isnull=True
                     ).order_by("rank"),
                 )
             )
@@ -124,12 +115,12 @@ class TodosManager(models.Manager):
         return (
             Todo.objects.filter(user_id=user_id, deleted_at__isnull=True)
             .filter(date__isnull=False)
-            .order_by("order")
+            .order_by("rank")
             .prefetch_related(
                 Prefetch(
                     "subtodos",
                     queryset=SubTodo.objects.filter(
-                        deleted_at__isnull=True, date__isnull=False
+                        deleted_at__isnull=True
                     ).order_by("rank"),
                 )
             )
