@@ -3,6 +3,8 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from accounts.models import Profile
+
 User = get_user_model()
 
 
@@ -45,3 +47,29 @@ class UserSerializer(serializers.ModelSerializer):
             "is_subscribed",
             "is_premium",
         ]
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = [
+            "user_id",
+            "username",
+            "age_group",
+            "job",
+            "sleep_time",
+            "delay_reason",
+        ]
+
+
+class SwaggerProfileSerializer(serializers.Serializer):
+    username = serializers.CharField(help_text="username")
+    age_group = serializers.CharField(help_text="age")
+    job = serializers.CharField(help_text="job")
+    sleep_time = serializers.CharField(help_text="sleep time")
+    delay_reason = serializers.ListField(
+        child=serializers.IntegerField(), help_text="delay reason"
+    )
+
+    class Meta:
+        fields = ["username", "age", "job", "sleep_time", "delay_reason"]

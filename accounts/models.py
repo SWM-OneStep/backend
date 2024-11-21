@@ -117,3 +117,30 @@ class PatchNote(models.Model):
             return user_email_list
         except Exception as e:
             sentry_sdk.capture_exception(e)
+
+
+class DelayReason(models.Model):
+    reason = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.reason
+
+
+class Profile(models.Model):
+    class AgeGroup(models.TextChoices):
+        TEENS = "10"
+        TWENTIES = "20"
+        THIRTIES = "30"
+        FORTIES = "40"
+        FIFTIES = "50"
+
+    user_id = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile",
+    )
+    username = models.CharField(max_length=255, null=True)
+    age_group = models.CharField(max_length=30, choices=AgeGroup.choices)
+    job = models.CharField(max_length=255)
+    sleep_time = models.TimeField()
+    delay_reason = models.ManyToManyField(DelayReason)

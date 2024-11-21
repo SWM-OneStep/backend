@@ -255,11 +255,16 @@ SENTRY_DSN = SECRETS.get("SENTRY_DSN")
 
 
 # sentry Filtering
-def setnry_filter_transactions(event, hint):
+def sentry_filter_transactions(event, hint):
     url_string = event["request"]["url"]
     parsed_url = urlparse(url_string)
 
-    if parsed_url.path == "/auth/android/" or parsed_url.path == "/swagger/":
+    if (
+        parsed_url.path == "/auth/android/"
+        or parsed_url.path == "/swagger/"
+        or parsed_url.path == "/auth/android"
+        or parsed_url.path == "/swagger"
+    ):
         return None
     return event
 
@@ -284,7 +289,7 @@ sentry_sdk.init(
         ),
         AsyncioIntegration(),
     ],
-    before_send_transaction=setnry_filter_transactions,
+    before_send_transaction=sentry_filter_transactions,
 )
 
 resend.api_key = SECRETS.get("RESEND")
