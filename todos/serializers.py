@@ -65,10 +65,16 @@ class SubTodoSerializer(serializers.ModelSerializer):
         if request.method == "PATCH":
             if not any(
                 data.get(field) is not None
-                for field in ["content", "date", "is_completed", "patch_rank"]
+                for field in [
+                    "content",
+                    "date",
+                    "is_completed",
+                    "due_time",
+                    "patch_rank",
+                ]
             ):
                 raise serializers.ValidationError(
-                    "At least one of content, date, \
+                    "At least one of content, date, due_time, \
                         is_completed, rank must be provided"
                 )
             return data
@@ -154,12 +160,13 @@ class TodoSerializer(serializers.ModelSerializer):
                     "content",
                     "category_id",
                     "date",
+                    "due_time",
                     "is_completed",
                     "patch_rank",
                 ]
             ):
                 raise serializers.ValidationError(
-                    "At least one of content, category_id, date, is_completed must be provided"  # noqa : E501
+                    "At least one of content, category_id, date, due_time, is_completed must be provided"  # noqa : E501
                 )
             if data.get("user_id"):
                 raise serializers.ValidationError("User cannot be updated")
