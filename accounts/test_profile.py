@@ -7,14 +7,14 @@ def test_post_profile_success(
     authenticated_client,
     job,
     sleep_time,
-    age,
+    age_group,
     delay_reason,
     username,
 ):
     url = reverse("profile")
     data = {
         "username": username,
-        "age": age,
+        "age_group": age_group,
         "job": job,
         "sleep_time": sleep_time,
         "delay_reason": delay_reason,
@@ -30,14 +30,14 @@ def test_post_profile_already_exist(
     authenticated_client,
     job,
     sleep_time,
-    age,
+    age_group,
     delay_reason,
     username,
 ):
     url = reverse("profile")
     data = {
         "username": username,
-        "age": age,
+        "age_group": age_group,
         "job": job,
         "sleep_time": sleep_time,
         "delay_reason": delay_reason,
@@ -47,7 +47,7 @@ def test_post_profile_already_exist(
 
 
 @pytest.mark.django_db
-def test_post_profile_invalid_age(
+def test_post_profile_invalid_age_group(
     authenticated_client,
     job,
     sleep_time,
@@ -57,7 +57,7 @@ def test_post_profile_invalid_age(
     url = reverse("profile")
     data = {
         "username": username,
-        "age": "33",
+        "age_group": "33",
         "job": job,
         "sleep_time": sleep_time,
         "delay_reason": delay_reason,
@@ -134,7 +134,7 @@ def test_patch_profile_invalid_data(
 ):
     url = reverse("profile")
     data = {
-        "age": "33",
+        "age_group": "33",
     }
     response = authenticated_client.patch(url, data, format="json")
     assert response.status_code == 400

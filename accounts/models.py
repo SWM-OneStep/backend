@@ -127,12 +127,12 @@ class DelayReason(models.Model):
 
 
 class Profile(models.Model):
-    class Age(models.TextChoices):
-        TEN = "10"
-        TWENTY = "20"
-        THIRTY = "30"
-        FOURTY = "40"
-        FIFTY = "50"
+    class AgeGroup(models.TextChoices):
+        TEENS = "10"
+        TWENTIES = "20"
+        THIRTIES = "30"
+        FORTIES = "40"
+        FIFTIES = "50"
 
     user_id = models.OneToOneField(
         User,
@@ -140,10 +140,7 @@ class Profile(models.Model):
         related_name="profile",
     )
     username = models.CharField(max_length=255, null=True)
-    age = models.CharField(
-        max_length=30,
-        choices=Age.choices,
-    )
+    age_group = models.CharField(max_length=30, choices=AgeGroup.choices)
     job = models.CharField(max_length=255)
     sleep_time = models.TimeField()
     delay_reason = models.ManyToManyField(DelayReason)

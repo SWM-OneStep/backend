@@ -178,7 +178,7 @@ def username():
 
 
 @pytest.fixture
-def age():
+def age_group():
     ages = ["10", "20", "30", "40", "50"]
     return random.choice(ages)
 
@@ -215,11 +215,13 @@ def create_delay_reason():
 
 
 @pytest.fixture
-def create_profile(create_user, username, age, job, sleep_time, delay_reason):
+def create_profile(
+    create_user, username, age_group, job, sleep_time, delay_reason
+):
     profile = Profile.objects.create(
         user_id=create_user,
         username=username,
-        age=age,
+        age_group=age_group,
         job=job,
         sleep_time=sleep_time,
     )
