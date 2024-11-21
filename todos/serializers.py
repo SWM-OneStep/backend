@@ -177,7 +177,7 @@ class TodoSerializer(serializers.ModelSerializer):
             elif attr == "date":
                 subtodos = SubTodo.objects.filter(todo_id=instance.id).all()
                 for subtodo in subtodos:
-                    subtodo.date = value
+                    setattr(subtodo, attr, value)
                     subtodo.save()
                 setattr(instance, attr, value)
             else:
