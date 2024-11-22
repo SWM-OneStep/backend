@@ -74,6 +74,7 @@ class TodoView(APIView):
                 context={"request": request}, data=data
             )
             if serializer.is_valid(raise_exception=True):
+                serializer.save()
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
@@ -293,6 +294,7 @@ class SubTodoView(APIView):
         serializer = SubTodoSerializer(context={"request": request}, data=data)
 
         if serializer.is_valid(raise_exception=True):
+            serializer.save()
             send_push_notification_device(
                 request.auth.get("device"),
                 request.user,
@@ -503,6 +505,7 @@ class CategoryView(APIView):
             )
 
             if serializer.is_valid(raise_exception=True):
+                serializer.save()
                 send_push_notification_device(
                     request.auth.get("device"),
                     request.user,
