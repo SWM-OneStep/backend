@@ -65,13 +65,14 @@ class TodoView(APIView):
         """
 
         try:
-            data = request.data.copy()
-            data["user_id"] = request.user.id
-            data["rank"] = Todo.objects.get_next_rank(request.user.id)
-
             set_sentry_user(request.user)
-            serializer = TodoSerializer(
-                context={"request": request}, data=data
+            data = request.data.copy()
+            rank = SubTodo.objects.get_next_rank_subtodo(request.user.id)
+            for i in range(len(data)):
+                data[i]["rank"] = rank
+                rank = SubTodo.objects.gen_next_rank(rank)
+            serializer = SubTodoSerializer(
+                context={"request": request}, data=data, many=True
             )
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
